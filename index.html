@@ -1,0 +1,1073 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 900px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 900px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="11/02">11/02</option>
+                                
+                                    <option value="fatura">fatura</option>
+                                
+                                    <option value="12 meses">12 meses</option>
+                                
+                                    <option value="isenção">isenção</option>
+                                
+                                    <option value="14/02">14/02</option>
+                                
+                                    <option value="pagamento">pagamento</option>
+                                
+                                    <option value="15 dias">15 dias</option>
+                                
+                                    <option value="estabelecimento">estabelecimento</option>
+                                
+                                    <option value="estorno">estorno</option>
+                                
+                                    <option value="24h e 7 dias por semana">24h e 7 dias por semana</option>
+                                
+                                    <option value="chat">chat</option>
+                                
+                                    <option value="29/02/24">29/02/24</option>
+                                
+                                    <option value="informe de rendimentos">informe de rendimentos</option>
+                                
+                                    <option value="5000">5000</option>
+                                
+                                    <option value="investimento">investimento</option>
+                                
+                                    <option value="72 horas">72 horas</option>
+                                
+                                    <option value="retorno">retorno</option>
+                                
+                                    <option value="TED">TED</option>
+                                
+                                    <option value="transferência">transferência</option>
+                                
+                                    <option value="aberta">aberta</option>
+                                
+                                    <option value="aberto">aberto</option>
+                                
+                                    <option value="chamado">chamado</option>
+                                
+                                    <option value="abertura de conta">abertura de conta</option>
+                                
+                                    <option value="cliente">cliente</option>
+                                
+                                    <option value="abrir conta">abrir conta</option>
+                                
+                                    <option value="banco">banco</option>
+                                
+                                    <option value="acessar conta">acessar conta</option>
+                                
+                                    <option value="acesso">acesso</option>
+                                
+                                    <option value="conta">conta</option>
+                                
+                                    <option value="acesso a conta">acesso a conta</option>
+                                
+                                    <option value="adicional">adicional</option>
+                                
+                                    <option value="cartão">cartão</option>
+                                
+                                    <option value="agendada">agendada</option>
+                                
+                                    <option value="ainda">ainda</option>
+                                
+                                    <option value="ajuda">ajuda</option>
+                                
+                                    <option value="analisado">analisado</option>
+                                
+                                    <option value="caso">caso</option>
+                                
+                                    <option value="antecipar parcelas">antecipar parcelas</option>
+                                
+                                    <option value="antecipação">antecipação</option>
+                                
+                                    <option value="atendente">atendente</option>
+                                
+                                    <option value="desconto">desconto</option>
+                                
+                                    <option value="irreversível">irreversível</option>
+                                
+                                    <option value="realizada">realizada</option>
+                                
+                                    <option value="sucesso">sucesso</option>
+                                
+                                    <option value="anuidade">anuidade</option>
+                                
+                                    <option value="cartão black">cartão black</option>
+                                
+                                    <option value="isenta">isenta</option>
+                                
+                                    <option value="análise">análise</option>
+                                
+                                    <option value="análise de crédito">análise de crédito</option>
+                                
+                                    <option value="aparência">aparência</option>
+                                
+                                    <option value="aplicativo">aplicativo</option>
+                                
+                                    <option value="botão">botão</option>
+                                
+                                    <option value="botão ☰">botão ☰</option>
+                                
+                                    <option value="desatualizado">desatualizado</option>
+                                
+                                    <option value="pesquisa">pesquisa</option>
+                                
+                                    <option value="resgate">resgate</option>
+                                
+                                    <option value="app">app</option>
+                                
+                                    <option value="atualização">atualização</option>
+                                
+                                    <option value="assessor">assessor</option>
+                                
+                                    <option value="contato">contato</option>
+                                
+                                    <option value="assinatura de documentos">assinatura de documentos</option>
+                                
+                                    <option value="assinatura de token">assinatura de token</option>
+                                
+                                    <option value="internet banking">internet banking</option>
+                                
+                                    <option value="atendimento">atendimento</option>
+                                
+                                    <option value="cancelamento">cancelamento</option>
+                                
+                                    <option value="e-mail">e-mail</option>
+                                
+                                    <option value="email">email</option>
+                                
+                                    <option value="informação">informação</option>
+                                
+                                    <option value="informações">informações</option>
+                                
+                                    <option value="notificação">notificação</option>
+                                
+                                    <option value="passo a passo">passo a passo</option>
+                                
+                                    <option value="print">print</option>
+                                
+                                    <option value="print da tela">print da tela</option>
+                                
+                                    <option value="retorno por e-mail">retorno por e-mail</option>
+                                
+                                    <option value="sistema">sistema</option>
+                                
+                                    <option value="solicitação">solicitação</option>
+                                
+                                    <option value="time especialista">time especialista</option>
+                                
+                                    <option value="usuário">usuário</option>
+                                
+                                    <option value="tempo decorrido">tempo decorrido</option>
+                                
+                                    <option value="ativa">ativa</option>
+                                
+                                    <option value="conta investimento">conta investimento</option>
+                                
+                                    <option value="portabilidade">portabilidade</option>
+                                
+                                    <option value="ativação">ativação</option>
+                                
+                                    <option value="ativo">ativo</option>
+                                
+                                    <option value="beneficio">beneficio</option>
+                                
+                                    <option value="cashback">cashback</option>
+                                
+                                    <option value="atrasada">atrasada</option>
+                                
+                                    <option value="atualizar aplicativo">atualizar aplicativo</option>
+                                
+                                    <option value="solução">solução</option>
+                                
+                                    <option value="problema">problema</option>
+                                
+                                    <option value="aumentar limite">aumentar limite</option>
+                                
+                                    <option value="aumento de limite">aumento de limite</option>
+                                
+                                    <option value="ausente">ausente</option>
+                                
+                                    <option value="autorizada">autorizada</option>
+                                
+                                    <option value="compra">compra</option>
+                                
+                                    <option value="avaliar atendimento">avaliar atendimento</option>
+                                
+                                    <option value="encerrar conta">encerrar conta</option>
+                                
+                                    <option value="funcionalidade">funcionalidade</option>
+                                
+                                    <option value="banking">banking</option>
+                                
+                                    <option value="benefício">benefício</option>
+                                
+                                    <option value="iof especial">iof especial</option>
+                                
+                                    <option value="biometria">biometria</option>
+                                
+                                    <option value="black">black</option>
+                                
+                                    <option value="bloqueada">bloqueada</option>
+                                
+                                    <option value="bloqueado">bloqueado</option>
+                                
+                                    <option value="cartão de crédito">cartão de crédito</option>
+                                
+                                    <option value="cartão físico">cartão físico</option>
+                                
+                                    <option value="limite">limite</option>
+                                
+                                    <option value="pix">pix</option>
+                                
+                                    <option value="bloqueio">bloqueio</option>
+                                
+                                    <option value="dados desatualizados">dados desatualizados</option>
+                                
+                                    <option value="judicial">judicial</option>
+                                
+                                    <option value="parcelamento">parcelamento</option>
+                                
+                                    <option value="por segurança">por segurança</option>
+                                
+                                    <option value="preventivo">preventivo</option>
+                                
+                                    <option value="segurança">segurança</option>
+                                
+                                    <option value="bloqueio do cartão">bloqueio do cartão</option>
+                                
+                                    <option value="causa">causa</option>
+                                
+                                    <option value="bloqueio parcial">bloqueio parcial</option>
+                                
+                                    <option value="bloqueio preventivo">bloqueio preventivo</option>
+                                
+                                    <option value="boleto">boleto</option>
+                                
+                                    <option value="btg">btg</option>
+                                
+                                    <option value="empiricus">empiricus</option>
+                                
+                                    <option value="btg investimentos">btg investimentos</option>
+                                
+                                    <option value="cancelada">cancelada</option>
+                                
+                                    <option value="plataforma">plataforma</option>
+                                
+                                    <option value="transferência de custódia">transferência de custódia</option>
+                                
+                                    <option value="cancelado">cancelado</option>
+                                
+                                    <option value="cancelar cartão">cancelar cartão</option>
+                                
+                                    <option value="cancelar conta">cancelar conta</option>
+                                
+                                    <option value="clonado">clonado</option>
+                                
+                                    <option value="compra não reconhecida">compra não reconhecida</option>
+                                
+                                    <option value="compras não reconhecidas">compras não reconhecidas</option>
+                                
+                                    <option value="compras online">compras online</option>
+                                
+                                    <option value="compras online bloqueadas">compras online bloqueadas</option>
+                                
+                                    <option value="crédito">crédito</option>
+                                
+                                    <option value="desbloqueado">desbloqueado</option>
+                                
+                                    <option value="débito">débito</option>
+                                
+                                    <option value="entregue">entregue</option>
+                                
+                                    <option value="função compras online">função compras online</option>
+                                
+                                    <option value="função crédito">função crédito</option>
+                                
+                                    <option value="função débito">função débito</option>
+                                
+                                    <option value="habilitado">habilitado</option>
+                                
+                                    <option value="layout">layout</option>
+                                
+                                    <option value="mensalidade">mensalidade</option>
+                                
+                                    <option value="não chegou">não chegou</option>
+                                
+                                    <option value="pendência">pendência</option>
+                                
+                                    <option value="recebido">recebido</option>
+                                
+                                    <option value="roubado">roubado</option>
+                                
+                                    <option value="sim">sim</option>
+                                
+                                    <option value="virtual">virtual</option>
+                                
+                                    <option value="cartão adicional">cartão adicional</option>
+                                
+                                    <option value="disponível">disponível</option>
+                                
+                                    <option value="isenção de anuidade">isenção de anuidade</option>
+                                
+                                    <option value="cartão bloqueado">cartão bloqueado</option>
+                                
+                                    <option value="consequência">consequência</option>
+                                
+                                    <option value="consequência de pagamento não efetuado">consequência de pagamento não efetuado</option>
+                                
+                                    <option value="cartão de crédito digital">cartão de crédito digital</option>
+                                
+                                    <option value="eqi">eqi</option>
+                                
+                                    <option value="cartão de débito">cartão de débito</option>
+                                
+                                    <option value="cartão virtual">cartão virtual</option>
+                                
+                                    <option value="caráter individual">caráter individual</option>
+                                
+                                    <option value="encerramento">encerramento</option>
+                                
+                                    <option value="recusa">recusa</option>
+                                
+                                    <option value="cobrança">cobrança</option>
+                                
+                                    <option value="time de especialistas">time de especialistas</option>
+                                
+                                    <option value="time interno">time interno</option>
+                                
+                                    <option value="fatura não paga">fatura não paga</option>
+                                
+                                    <option value="pagamento não efetuado">pagamento não efetuado</option>
+                                
+                                    <option value="cdb">cdb</option>
+                                
+                                    <option value="liquidez diária">liquidez diária</option>
+                                
+                                    <option value="disponível 24h e 7 dias por semana">disponível 24h e 7 dias por semana</option>
+                                
+                                    <option value="encerrado">encerrado</option>
+                                
+                                    <option value="sem interação">sem interação</option>
+                                
+                                    <option value="cobrança indevida">cobrança indevida</option>
+                                
+                                    <option value="comprovante">comprovante</option>
+                                
+                                    <option value="conta banking">conta banking</option>
+                                
+                                    <option value="conta bloqueada">conta bloqueada</option>
+                                
+                                    <option value="conta corrente">conta corrente</option>
+                                
+                                    <option value="conta encerrada">conta encerrada</option>
+                                
+                                    <option value="desbloquear cartão">desbloquear cartão</option>
+                                
+                                    <option value="desbloqueio">desbloqueio</option>
+                                
+                                    <option value="dinheiro">dinheiro</option>
+                                
+                                    <option value="dúvida">dúvida</option>
+                                
+                                    <option value="fazer pix">fazer pix</option>
+                                
+                                    <option value="investimentos">investimentos</option>
+                                
+                                    <option value="investir">investir</option>
+                                
+                                    <option value="mensagem">mensagem</option>
+                                
+                                    <option value="mensagem de erro">mensagem de erro</option>
+                                
+                                    <option value="não consegue acessar conta">não consegue acessar conta</option>
+                                
+                                    <option value="não consegue fazer pix">não consegue fazer pix</option>
+                                
+                                    <option value="pagar fatura">pagar fatura</option>
+                                
+                                    <option value="prints">prints</option>
+                                
+                                    <option value="resgatar investimento">resgatar investimento</option>
+                                
+                                    <option value="saldo">saldo</option>
+                                
+                                    <option value="saldo bloqueado">saldo bloqueado</option>
+                                
+                                    <option value="senha">senha</option>
+                                
+                                    <option value="transferir">transferir</option>
+                                
+                                    <option value="transferir dinheiro">transferir dinheiro</option>
+                                
+                                    <option value="estornada">estornada</option>
+                                
+                                    <option value="indevida">indevida</option>
+                                
+                                    <option value="iof">iof</option>
+                                
+                                    <option value="golpe">golpe</option>
+                                
+                                    <option value="internacional">internacional</option>
+                                
+                                    <option value="conjunta">conjunta</option>
+                                
+                                    <option value="conjunta investimentos">conjunta investimentos</option>
+                                
+                                    <option value="conta salário">conta salário</option>
+                                
+                                    <option value="corrente">corrente</option>
+                                
+                                    <option value="documentação pendente">documentação pendente</option>
+                                
+                                    <option value="encerrada">encerrada</option>
+                                
+                                    <option value="encerrar">encerrar</option>
+                                
+                                    <option value="filho">filho</option>
+                                
+                                    <option value="inatividade">inatividade</option>
+                                
+                                    <option value="negativa">negativa</option>
+                                
+                                    <option value="pendências">pendências</option>
+                                
+                                    <option value="saldo negativo">saldo negativo</option>
+                                
+                                    <option value="salário">salário</option>
+                                
+                                    <option value="ser encerrada">ser encerrada</option>
+                                
+                                    <option value="vitreo">vitreo</option>
+                                
+                                    <option value="zerada">zerada</option>
+                                
+                                    <option value="conta errada">conta errada</option>
+                                
+                                    <option value="conta btg">conta btg</option>
+                                
+                                    <option value="conta conjunta">conta conjunta</option>
+                                
+                                    <option value="saques gratuitos">saques gratuitos</option>
+                                
+                                    <option value="conta cpf">conta cpf</option>
+                                
+                                    <option value="conta do cliente">conta do cliente</option>
+                                
+                                    <option value="ser reativada">ser reativada</option>
+                                
+                                    <option value="valor">valor</option>
+                                
+                                    <option value="vinculada">vinculada</option>
+                                
+                                    <option value="telefone">telefone</option>
+                                
+                                    <option value="continuar atendimento">continuar atendimento</option>
+                                
+                                    <option value="contratação">contratação</option>
+                                
+                                    <option value="seguro viagem">seguro viagem</option>
+                                
+                                    <option value="cpf">cpf</option>
+                                
+                                    <option value="decisão comercial">decisão comercial</option>
+                                
+                                    <option value="decisão de negócios">decisão de negócios</option>
+                                
+                                    <option value="imediatamente">imediatamente</option>
+                                
+                                    <option value="desbloqueio mais rápido">desbloqueio mais rápido</option>
+                                
+                                    <option value="débito em conta">débito em conta</option>
+                                
+                                    <option value="desbloqueio rápido">desbloqueio rápido</option>
+                                
+                                    <option value="duplicado">duplicado</option>
+                                
+                                    <option value="débito automático">débito automático</option>
+                                
+                                    <option value="resposta">resposta</option>
+                                
+                                    <option value="efetuado">efetuado</option>
+                                
+                                    <option value="em ajustes">em ajustes</option>
+                                
+                                    <option value="encargos">encargos</option>
+                                
+                                    <option value="regras internas">regras internas</option>
+                                
+                                    <option value="enviado por e-mail">enviado por e-mail</option>
+                                
+                                    <option value="erro">erro</option>
+                                
+                                    <option value="transação não autorizada">transação não autorizada</option>
+                                
+                                    <option value="esquecida">esquecida</option>
+                                
+                                    <option value="feito">feito</option>
+                                
+                                    <option value="exigibilidade">exigibilidade</option>
+                                
+                                    <option value="liminar">liminar</option>
+                                
+                                    <option value="extrato">extrato</option>
+                                
+                                    <option value="formato pdf">formato pdf</option>
+                                
+                                    <option value="fevereiro">fevereiro</option>
+                                
+                                    <option value="não paga">não paga</option>
+                                
+                                    <option value="vencimento">vencimento</option>
+                                
+                                    <option value="fechado">fechado</option>
+                                
+                                    <option value="mercado">mercado</option>
+                                
+                                    <option value="funcionalidade de segurança">funcionalidade de segurança</option>
+                                
+                                    <option value="token">token</option>
+                                
+                                    <option value="hoje">hoje</option>
+                                
+                                    <option value="indisponível">indisponível</option>
+                                
+                                    <option value="instabilidade">instabilidade</option>
+                                
+                                    <option value="renda fixa">renda fixa</option>
+                                
+                                    <option value="tesouro direto">tesouro direto</option>
+                                
+                                    <option value="saque">saque</option>
+                                
+                                    <option value="mastercard">mastercard</option>
+                                
+                                    <option value="nubank">nubank</option>
+                                
+                                    <option value="não determinado">não determinado</option>
+                                
+                                    <option value="tempo de espera">tempo de espera</option>
+                                
+                                    <option value="realizado">realizado</option>
+                                
+                                    <option value="total">total</option>
+                                
+                                    <option value="referente ao atendimento">referente ao atendimento</option>
+                                
+                                    <option value="plano de negócios">plano de negócios</option>
+                                
+                                    <option value="r$100,00">r$100,00</option>
+                                
+                                    <option value="por e-mail">por e-mail</option>
+                                
+                                    <option value="processamento">processamento</option>
+                                
+                                    <option value="processando">processando</option>
+                                
+                                    <option value="próximo dia útil">próximo dia útil</option>
+                                
+                                    <option value="solicitado">solicitado</option>
+                                
+                                    <option value="tesouro selic">tesouro selic</option>
+                                
+                                    <option value="via e-mail">via e-mail</option>
+                                
+                                    <option value="ted">ted</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"group": 1, "id": "11/02", "label": "11/02", "shape": "dot", "size": 1}, {"group": 1, "id": "fatura", "label": "fatura", "shape": "dot", "size": 15}, {"group": 2, "id": "12 meses", "label": "12 meses", "shape": "dot", "size": 1}, {"group": 2, "id": "isen\u00e7\u00e3o", "label": "isen\u00e7\u00e3o", "shape": "dot", "size": 3}, {"group": 1, "id": "14/02", "label": "14/02", "shape": "dot", "size": 1}, {"group": 1, "id": "pagamento", "label": "pagamento", "shape": "dot", "size": 15}, {"group": 1, "id": "15 dias", "label": "15 dias", "shape": "dot", "size": 2}, {"group": 1, "id": "estabelecimento", "label": "estabelecimento", "shape": "dot", "size": 3}, {"group": 1, "id": "estorno", "label": "estorno", "shape": "dot", "size": 4}, {"group": 1, "id": "24h e 7 dias por semana", "label": "24h e 7 dias por semana", "shape": "dot", "size": 1}, {"group": 1, "id": "chat", "label": "chat", "shape": "dot", "size": 7}, {"group": 1, "id": "29/02/24", "label": "29/02/24", "shape": "dot", "size": 1}, {"group": 1, "id": "informe de rendimentos", "label": "informe de rendimentos", "shape": "dot", "size": 3}, {"group": 2, "id": "5000", "label": "5000", "shape": "dot", "size": 1}, {"group": 2, "id": "investimento", "label": "investimento", "shape": "dot", "size": 8}, {"group": 1, "id": "72 horas", "label": "72 horas", "shape": "dot", "size": 1}, {"group": 1, "id": "retorno", "label": "retorno", "shape": "dot", "size": 8}, {"group": 1, "id": "TED", "label": "TED", "shape": "dot", "size": 1}, {"group": 1, "id": "transfer\u00eancia", "label": "transfer\u00eancia", "shape": "dot", "size": 19}, {"group": 1, "id": "aberta", "label": "aberta", "shape": "dot", "size": 1}, {"group": 1, "id": "aberto", "label": "aberto", "shape": "dot", "size": 1}, {"group": 1, "id": "chamado", "label": "chamado", "shape": "dot", "size": 2}, {"group": 1, "id": "abertura de conta", "label": "abertura de conta", "shape": "dot", "size": 1}, {"group": 1, "id": "cliente", "label": "cliente", "shape": "dot", "size": 83}, {"group": 1, "id": "abrir conta", "label": "abrir conta", "shape": "dot", "size": 2}, {"group": 1, "id": "banco", "label": "banco", "shape": "dot", "size": 6}, {"group": 1, "id": "acessar conta", "label": "acessar conta", "shape": "dot", "size": 1}, {"group": 1, "id": "acesso", "label": "acesso", "shape": "dot", "size": 2}, {"group": 1, "id": "conta", "label": "conta", "shape": "dot", "size": 41}, {"group": 1, "id": "acesso a conta", "label": "acesso a conta", "shape": "dot", "size": 1}, {"group": 2, "id": "adicional", "label": "adicional", "shape": "dot", "size": 1}, {"group": 2, "id": "cart\u00e3o", "label": "cart\u00e3o", "shape": "dot", "size": 36}, {"group": 1, "id": "agendada", "label": "agendada", "shape": "dot", "size": 1}, {"group": 1, "id": "ainda", "label": "ainda", "shape": "dot", "size": 1}, {"group": 1, "id": "ajuda", "label": "ajuda", "shape": "dot", "size": 1}, {"group": 1, "id": "analisado", "label": "analisado", "shape": "dot", "size": 1}, {"group": 1, "id": "caso", "label": "caso", "shape": "dot", "size": 4}, {"group": 1, "id": "antecipar parcelas", "label": "antecipar parcelas", "shape": "dot", "size": 1}, {"group": 1, "id": "antecipa\u00e7\u00e3o", "label": "antecipa\u00e7\u00e3o", "shape": "dot", "size": 6}, {"group": 1, "id": "atendente", "label": "atendente", "shape": "dot", "size": 24}, {"group": 1, "id": "desconto", "label": "desconto", "shape": "dot", "size": 1}, {"group": 1, "id": "irrevers\u00edvel", "label": "irrevers\u00edvel", "shape": "dot", "size": 1}, {"group": 1, "id": "realizada", "label": "realizada", "shape": "dot", "size": 2}, {"group": 1, "id": "sucesso", "label": "sucesso", "shape": "dot", "size": 1}, {"group": 2, "id": "anuidade", "label": "anuidade", "shape": "dot", "size": 3}, {"group": 2, "id": "cart\u00e3o black", "label": "cart\u00e3o black", "shape": "dot", "size": 6}, {"group": 2, "id": "isenta", "label": "isenta", "shape": "dot", "size": 1}, {"group": 1, "id": "an\u00e1lise", "label": "an\u00e1lise", "shape": "dot", "size": 1}, {"group": 2, "id": "an\u00e1lise de cr\u00e9dito", "label": "an\u00e1lise de cr\u00e9dito", "shape": "dot", "size": 1}, {"group": 2, "id": "apar\u00eancia", "label": "apar\u00eancia", "shape": "dot", "size": 1}, {"group": 1, "id": "aplicativo", "label": "aplicativo", "shape": "dot", "size": 7}, {"group": 1, "id": "bot\u00e3o", "label": "bot\u00e3o", "shape": "dot", "size": 1}, {"group": 1, "id": "bot\u00e3o \u2630", "label": "bot\u00e3o \u2630", "shape": "dot", "size": 1}, {"group": 1, "id": "desatualizado", "label": "desatualizado", "shape": "dot", "size": 1}, {"group": 1, "id": "pesquisa", "label": "pesquisa", "shape": "dot", "size": 6}, {"group": 1, "id": "resgate", "label": "resgate", "shape": "dot", "size": 12}, {"group": 1, "id": "app", "label": "app", "shape": "dot", "size": 2}, {"group": 1, "id": "atualiza\u00e7\u00e3o", "label": "atualiza\u00e7\u00e3o", "shape": "dot", "size": 2}, {"group": 1, "id": "assessor", "label": "assessor", "shape": "dot", "size": 2}, {"group": 1, "id": "contato", "label": "contato", "shape": "dot", "size": 5}, {"group": 1, "id": "assinatura de documentos", "label": "assinatura de documentos", "shape": "dot", "size": 1}, {"group": 1, "id": "assinatura de token", "label": "assinatura de token", "shape": "dot", "size": 2}, {"group": 1, "id": "internet banking", "label": "internet banking", "shape": "dot", "size": 1}, {"group": 1, "id": "atendimento", "label": "atendimento", "shape": "dot", "size": 4}, {"group": 1, "id": "cancelamento", "label": "cancelamento", "shape": "dot", "size": 3}, {"group": 1, "id": "e-mail", "label": "e-mail", "shape": "dot", "size": 9}, {"group": 1, "id": "email", "label": "email", "shape": "dot", "size": 3}, {"group": 1, "id": "informa\u00e7\u00e3o", "label": "informa\u00e7\u00e3o", "shape": "dot", "size": 2}, {"group": 1, "id": "informa\u00e7\u00f5es", "label": "informa\u00e7\u00f5es", "shape": "dot", "size": 4}, {"group": 1, "id": "notifica\u00e7\u00e3o", "label": "notifica\u00e7\u00e3o", "shape": "dot", "size": 3}, {"group": 1, "id": "passo a passo", "label": "passo a passo", "shape": "dot", "size": 1}, {"group": 1, "id": "print", "label": "print", "shape": "dot", "size": 2}, {"group": 1, "id": "print da tela", "label": "print da tela", "shape": "dot", "size": 1}, {"group": 1, "id": "retorno por e-mail", "label": "retorno por e-mail", "shape": "dot", "size": 2}, {"group": 1, "id": "sistema", "label": "sistema", "shape": "dot", "size": 5}, {"group": 1, "id": "solicita\u00e7\u00e3o", "label": "solicita\u00e7\u00e3o", "shape": "dot", "size": 1}, {"group": 1, "id": "time especialista", "label": "time especialista", "shape": "dot", "size": 1}, {"group": 1, "id": "usu\u00e1rio", "label": "usu\u00e1rio", "shape": "dot", "size": 1}, {"group": 1, "id": "tempo decorrido", "label": "tempo decorrido", "shape": "dot", "size": 1}, {"group": 1, "id": "ativa", "label": "ativa", "shape": "dot", "size": 3}, {"group": 1, "id": "conta investimento", "label": "conta investimento", "shape": "dot", "size": 12}, {"group": 1, "id": "portabilidade", "label": "portabilidade", "shape": "dot", "size": 2}, {"group": 2, "id": "ativa\u00e7\u00e3o", "label": "ativa\u00e7\u00e3o", "shape": "dot", "size": 1}, {"group": 2, "id": "ativo", "label": "ativo", "shape": "dot", "size": 3}, {"group": 2, "id": "beneficio", "label": "beneficio", "shape": "dot", "size": 1}, {"group": 2, "id": "cashback", "label": "cashback", "shape": "dot", "size": 4}, {"group": 1, "id": "atrasada", "label": "atrasada", "shape": "dot", "size": 1}, {"group": 1, "id": "atualizar aplicativo", "label": "atualizar aplicativo", "shape": "dot", "size": 1}, {"group": 1, "id": "solu\u00e7\u00e3o", "label": "solu\u00e7\u00e3o", "shape": "dot", "size": 3}, {"group": 1, "id": "problema", "label": "problema", "shape": "dot", "size": 2}, {"group": 1, "id": "aumentar limite", "label": "aumentar limite", "shape": "dot", "size": 1}, {"group": 1, "id": "aumento de limite", "label": "aumento de limite", "shape": "dot", "size": 1}, {"group": 1, "id": "ausente", "label": "ausente", "shape": "dot", "size": 1}, {"group": 1, "id": "autorizada", "label": "autorizada", "shape": "dot", "size": 1}, {"group": 1, "id": "compra", "label": "compra", "shape": "dot", "size": 10}, {"group": 1, "id": "avaliar atendimento", "label": "avaliar atendimento", "shape": "dot", "size": 1}, {"group": 1, "id": "encerrar conta", "label": "encerrar conta", "shape": "dot", "size": 2}, {"group": 1, "id": "funcionalidade", "label": "funcionalidade", "shape": "dot", "size": 1}, {"group": 1, "id": "banking", "label": "banking", "shape": "dot", "size": 1}, {"group": 2, "id": "benef\u00edcio", "label": "benef\u00edcio", "shape": "dot", "size": 2}, {"group": 2, "id": "iof especial", "label": "iof especial", "shape": "dot", "size": 1}, {"group": 1, "id": "biometria", "label": "biometria", "shape": "dot", "size": 1}, {"group": 2, "id": "black", "label": "black", "shape": "dot", "size": 1}, {"group": 1, "id": "bloqueada", "label": "bloqueada", "shape": "dot", "size": 1}, {"group": 2, "id": "bloqueado", "label": "bloqueado", "shape": "dot", "size": 5}, {"group": 2, "id": "cart\u00e3o de cr\u00e9dito", "label": "cart\u00e3o de cr\u00e9dito", "shape": "dot", "size": 7}, {"group": 2, "id": "cart\u00e3o f\u00edsico", "label": "cart\u00e3o f\u00edsico", "shape": "dot", "size": 1}, {"group": 2, "id": "limite", "label": "limite", "shape": "dot", "size": 4}, {"group": 1, "id": "pix", "label": "pix", "shape": "dot", "size": 9}, {"group": 2, "id": "bloqueio", "label": "bloqueio", "shape": "dot", "size": 10}, {"group": 2, "id": "dados desatualizados", "label": "dados desatualizados", "shape": "dot", "size": 1}, {"group": 2, "id": "judicial", "label": "judicial", "shape": "dot", "size": 1}, {"group": 2, "id": "parcelamento", "label": "parcelamento", "shape": "dot", "size": 1}, {"group": 2, "id": "por seguran\u00e7a", "label": "por seguran\u00e7a", "shape": "dot", "size": 1}, {"group": 2, "id": "preventivo", "label": "preventivo", "shape": "dot", "size": 1}, {"group": 2, "id": "seguran\u00e7a", "label": "seguran\u00e7a", "shape": "dot", "size": 3}, {"group": 3, "id": "bloqueio do cart\u00e3o", "label": "bloqueio do cart\u00e3o", "shape": "dot", "size": 1}, {"group": 3, "id": "causa", "label": "causa", "shape": "dot", "size": 3}, {"group": 1, "id": "bloqueio parcial", "label": "bloqueio parcial", "shape": "dot", "size": 1}, {"group": 2, "id": "bloqueio preventivo", "label": "bloqueio preventivo", "shape": "dot", "size": 1}, {"group": 1, "id": "boleto", "label": "boleto", "shape": "dot", "size": 2}, {"group": 1, "id": "btg", "label": "btg", "shape": "dot", "size": 3}, {"group": 1, "id": "empiricus", "label": "empiricus", "shape": "dot", "size": 1}, {"group": 1, "id": "btg investimentos", "label": "btg investimentos", "shape": "dot", "size": 1}, {"group": 1, "id": "cancelada", "label": "cancelada", "shape": "dot", "size": 4}, {"group": 1, "id": "plataforma", "label": "plataforma", "shape": "dot", "size": 2}, {"group": 1, "id": "transfer\u00eancia de cust\u00f3dia", "label": "transfer\u00eancia de cust\u00f3dia", "shape": "dot", "size": 2}, {"group": 2, "id": "cancelado", "label": "cancelado", "shape": "dot", "size": 2}, {"group": 1, "id": "cancelar cart\u00e3o", "label": "cancelar cart\u00e3o", "shape": "dot", "size": 1}, {"group": 1, "id": "cancelar conta", "label": "cancelar conta", "shape": "dot", "size": 1}, {"group": 2, "id": "clonado", "label": "clonado", "shape": "dot", "size": 1}, {"group": 2, "id": "compra n\u00e3o reconhecida", "label": "compra n\u00e3o reconhecida", "shape": "dot", "size": 4}, {"group": 2, "id": "compras n\u00e3o reconhecidas", "label": "compras n\u00e3o reconhecidas", "shape": "dot", "size": 1}, {"group": 2, "id": "compras online", "label": "compras online", "shape": "dot", "size": 1}, {"group": 2, "id": "compras online bloqueadas", "label": "compras online bloqueadas", "shape": "dot", "size": 1}, {"group": 2, "id": "cr\u00e9dito", "label": "cr\u00e9dito", "shape": "dot", "size": 1}, {"group": 2, "id": "desbloqueado", "label": "desbloqueado", "shape": "dot", "size": 1}, {"group": 2, "id": "d\u00e9bito", "label": "d\u00e9bito", "shape": "dot", "size": 1}, {"group": 2, "id": "entregue", "label": "entregue", "shape": "dot", "size": 2}, {"group": 2, "id": "fun\u00e7\u00e3o compras online", "label": "fun\u00e7\u00e3o compras online", "shape": "dot", "size": 1}, {"group": 2, "id": "fun\u00e7\u00e3o cr\u00e9dito", "label": "fun\u00e7\u00e3o cr\u00e9dito", "shape": "dot", "size": 2}, {"group": 2, "id": "fun\u00e7\u00e3o d\u00e9bito", "label": "fun\u00e7\u00e3o d\u00e9bito", "shape": "dot", "size": 1}, {"group": 2, "id": "habilitado", "label": "habilitado", "shape": "dot", "size": 1}, {"group": 2, "id": "layout", "label": "layout", "shape": "dot", "size": 1}, {"group": 2, "id": "mensalidade", "label": "mensalidade", "shape": "dot", "size": 1}, {"group": 2, "id": "n\u00e3o chegou", "label": "n\u00e3o chegou", "shape": "dot", "size": 1}, {"group": 2, "id": "pend\u00eancia", "label": "pend\u00eancia", "shape": "dot", "size": 2}, {"group": 2, "id": "recebido", "label": "recebido", "shape": "dot", "size": 1}, {"group": 2, "id": "roubado", "label": "roubado", "shape": "dot", "size": 1}, {"group": 2, "id": "sim", "label": "sim", "shape": "dot", "size": 2}, {"group": 2, "id": "virtual", "label": "virtual", "shape": "dot", "size": 1}, {"group": 2, "id": "cart\u00e3o adicional", "label": "cart\u00e3o adicional", "shape": "dot", "size": 2}, {"group": 1, "id": "dispon\u00edvel", "label": "dispon\u00edvel", "shape": "dot", "size": 3}, {"group": 2, "id": "isen\u00e7\u00e3o de anuidade", "label": "isen\u00e7\u00e3o de anuidade", "shape": "dot", "size": 1}, {"group": 3, "id": "cart\u00e3o bloqueado", "label": "cart\u00e3o bloqueado", "shape": "dot", "size": 4}, {"group": 3, "id": "consequ\u00eancia", "label": "consequ\u00eancia", "shape": "dot", "size": 2}, {"group": 3, "id": "consequ\u00eancia de pagamento n\u00e3o efetuado", "label": "consequ\u00eancia de pagamento n\u00e3o efetuado", "shape": "dot", "size": 1}, {"group": 1, "id": "cart\u00e3o de cr\u00e9dito digital", "label": "cart\u00e3o de cr\u00e9dito digital", "shape": "dot", "size": 2}, {"group": 1, "id": "eqi", "label": "eqi", "shape": "dot", "size": 3}, {"group": 1, "id": "cart\u00e3o de d\u00e9bito", "label": "cart\u00e3o de d\u00e9bito", "shape": "dot", "size": 1}, {"group": 1, "id": "cart\u00e3o virtual", "label": "cart\u00e3o virtual", "shape": "dot", "size": 3}, {"group": 1, "id": "car\u00e1ter individual", "label": "car\u00e1ter individual", "shape": "dot", "size": 2}, {"group": 1, "id": "encerramento", "label": "encerramento", "shape": "dot", "size": 5}, {"group": 1, "id": "recusa", "label": "recusa", "shape": "dot", "size": 3}, {"group": 2, "id": "cobran\u00e7a", "label": "cobran\u00e7a", "shape": "dot", "size": 6}, {"group": 1, "id": "time de especialistas", "label": "time de especialistas", "shape": "dot", "size": 1}, {"group": 1, "id": "time interno", "label": "time interno", "shape": "dot", "size": 2}, {"group": 3, "id": "fatura n\u00e3o paga", "label": "fatura n\u00e3o paga", "shape": "dot", "size": 2}, {"group": 3, "id": "pagamento n\u00e3o efetuado", "label": "pagamento n\u00e3o efetuado", "shape": "dot", "size": 1}, {"group": 2, "id": "cdb", "label": "cdb", "shape": "dot", "size": 1}, {"group": 2, "id": "liquidez di\u00e1ria", "label": "liquidez di\u00e1ria", "shape": "dot", "size": 2}, {"group": 1, "id": "dispon\u00edvel 24h e 7 dias por semana", "label": "dispon\u00edvel 24h e 7 dias por semana", "shape": "dot", "size": 1}, {"group": 1, "id": "encerrado", "label": "encerrado", "shape": "dot", "size": 1}, {"group": 1, "id": "sem intera\u00e7\u00e3o", "label": "sem intera\u00e7\u00e3o", "shape": "dot", "size": 1}, {"group": 1, "id": "cobran\u00e7a indevida", "label": "cobran\u00e7a indevida", "shape": "dot", "size": 1}, {"group": 1, "id": "comprovante", "label": "comprovante", "shape": "dot", "size": 2}, {"group": 1, "id": "conta banking", "label": "conta banking", "shape": "dot", "size": 4}, {"group": 1, "id": "conta bloqueada", "label": "conta bloqueada", "shape": "dot", "size": 1}, {"group": 1, "id": "conta corrente", "label": "conta corrente", "shape": "dot", "size": 6}, {"group": 1, "id": "conta encerrada", "label": "conta encerrada", "shape": "dot", "size": 2}, {"group": 1, "id": "desbloquear cart\u00e3o", "label": "desbloquear cart\u00e3o", "shape": "dot", "size": 1}, {"group": 1, "id": "desbloqueio", "label": "desbloqueio", "shape": "dot", "size": 2}, {"group": 1, "id": "dinheiro", "label": "dinheiro", "shape": "dot", "size": 3}, {"group": 1, "id": "d\u00favida", "label": "d\u00favida", "shape": "dot", "size": 1}, {"group": 1, "id": "fazer pix", "label": "fazer pix", "shape": "dot", "size": 1}, {"group": 1, "id": "investimentos", "label": "investimentos", "shape": "dot", "size": 3}, {"group": 1, "id": "investir", "label": "investir", "shape": "dot", "size": 1}, {"group": 1, "id": "mensagem", "label": "mensagem", "shape": "dot", "size": 1}, {"group": 1, "id": "mensagem de erro", "label": "mensagem de erro", "shape": "dot", "size": 2}, {"group": 1, "id": "n\u00e3o consegue acessar conta", "label": "n\u00e3o consegue acessar conta", "shape": "dot", "size": 1}, {"group": 1, "id": "n\u00e3o consegue fazer pix", "label": "n\u00e3o consegue fazer pix", "shape": "dot", "size": 1}, {"group": 1, "id": "pagar fatura", "label": "pagar fatura", "shape": "dot", "size": 1}, {"group": 1, "id": "prints", "label": "prints", "shape": "dot", "size": 1}, {"group": 1, "id": "resgatar investimento", "label": "resgatar investimento", "shape": "dot", "size": 1}, {"group": 1, "id": "saldo", "label": "saldo", "shape": "dot", "size": 3}, {"group": 1, "id": "saldo bloqueado", "label": "saldo bloqueado", "shape": "dot", "size": 1}, {"group": 1, "id": "senha", "label": "senha", "shape": "dot", "size": 3}, {"group": 1, "id": "transferir", "label": "transferir", "shape": "dot", "size": 1}, {"group": 1, "id": "transferir dinheiro", "label": "transferir dinheiro", "shape": "dot", "size": 1}, {"group": 2, "id": "estornada", "label": "estornada", "shape": "dot", "size": 1}, {"group": 2, "id": "indevida", "label": "indevida", "shape": "dot", "size": 1}, {"group": 2, "id": "iof", "label": "iof", "shape": "dot", "size": 1}, {"group": 1, "id": "golpe", "label": "golpe", "shape": "dot", "size": 1}, {"group": 1, "id": "internacional", "label": "internacional", "shape": "dot", "size": 1}, {"group": 1, "id": "conjunta", "label": "conjunta", "shape": "dot", "size": 1}, {"group": 1, "id": "conjunta investimentos", "label": "conjunta investimentos", "shape": "dot", "size": 1}, {"group": 1, "id": "conta sal\u00e1rio", "label": "conta sal\u00e1rio", "shape": "dot", "size": 1}, {"group": 1, "id": "corrente", "label": "corrente", "shape": "dot", "size": 1}, {"group": 1, "id": "documenta\u00e7\u00e3o pendente", "label": "documenta\u00e7\u00e3o pendente", "shape": "dot", "size": 1}, {"group": 1, "id": "encerrada", "label": "encerrada", "shape": "dot", "size": 2}, {"group": 1, "id": "encerrar", "label": "encerrar", "shape": "dot", "size": 1}, {"group": 1, "id": "filho", "label": "filho", "shape": "dot", "size": 1}, {"group": 1, "id": "inatividade", "label": "inatividade", "shape": "dot", "size": 1}, {"group": 1, "id": "negativa", "label": "negativa", "shape": "dot", "size": 1}, {"group": 1, "id": "pend\u00eancias", "label": "pend\u00eancias", "shape": "dot", "size": 1}, {"group": 1, "id": "saldo negativo", "label": "saldo negativo", "shape": "dot", "size": 1}, {"group": 1, "id": "sal\u00e1rio", "label": "sal\u00e1rio", "shape": "dot", "size": 1}, {"group": 1, "id": "ser encerrada", "label": "ser encerrada", "shape": "dot", "size": 1}, {"group": 1, "id": "vitreo", "label": "vitreo", "shape": "dot", "size": 1}, {"group": 1, "id": "zerada", "label": "zerada", "shape": "dot", "size": 1}, {"group": 1, "id": "conta errada", "label": "conta errada", "shape": "dot", "size": 2}, {"group": 1, "id": "conta btg", "label": "conta btg", "shape": "dot", "size": 2}, {"group": 1, "id": "conta conjunta", "label": "conta conjunta", "shape": "dot", "size": 1}, {"group": 1, "id": "saques gratuitos", "label": "saques gratuitos", "shape": "dot", "size": 1}, {"group": 1, "id": "conta cpf", "label": "conta cpf", "shape": "dot", "size": 1}, {"group": 1, "id": "conta do cliente", "label": "conta do cliente", "shape": "dot", "size": 1}, {"group": 1, "id": "ser reativada", "label": "ser reativada", "shape": "dot", "size": 1}, {"group": 1, "id": "valor", "label": "valor", "shape": "dot", "size": 1}, {"group": 1, "id": "vinculada", "label": "vinculada", "shape": "dot", "size": 1}, {"group": 1, "id": "telefone", "label": "telefone", "shape": "dot", "size": 1}, {"group": 1, "id": "continuar atendimento", "label": "continuar atendimento", "shape": "dot", "size": 1}, {"group": 4, "id": "contrata\u00e7\u00e3o", "label": "contrata\u00e7\u00e3o", "shape": "dot", "size": 1}, {"group": 4, "id": "seguro viagem", "label": "seguro viagem", "shape": "dot", "size": 2}, {"group": 1, "id": "cpf", "label": "cpf", "shape": "dot", "size": 1}, {"group": 1, "id": "decis\u00e3o comercial", "label": "decis\u00e3o comercial", "shape": "dot", "size": 1}, {"group": 1, "id": "decis\u00e3o de neg\u00f3cios", "label": "decis\u00e3o de neg\u00f3cios", "shape": "dot", "size": 1}, {"group": 1, "id": "imediatamente", "label": "imediatamente", "shape": "dot", "size": 1}, {"group": 1, "id": "desbloqueio mais r\u00e1pido", "label": "desbloqueio mais r\u00e1pido", "shape": "dot", "size": 1}, {"group": 1, "id": "d\u00e9bito em conta", "label": "d\u00e9bito em conta", "shape": "dot", "size": 3}, {"group": 1, "id": "desbloqueio r\u00e1pido", "label": "desbloqueio r\u00e1pido", "shape": "dot", "size": 1}, {"group": 1, "id": "duplicado", "label": "duplicado", "shape": "dot", "size": 1}, {"group": 1, "id": "d\u00e9bito autom\u00e1tico", "label": "d\u00e9bito autom\u00e1tico", "shape": "dot", "size": 2}, {"group": 1, "id": "resposta", "label": "resposta", "shape": "dot", "size": 1}, {"group": 1, "id": "efetuado", "label": "efetuado", "shape": "dot", "size": 1}, {"group": 1, "id": "em ajustes", "label": "em ajustes", "shape": "dot", "size": 1}, {"group": 1, "id": "encargos", "label": "encargos", "shape": "dot", "size": 1}, {"group": 1, "id": "regras internas", "label": "regras internas", "shape": "dot", "size": 2}, {"group": 1, "id": "enviado por e-mail", "label": "enviado por e-mail", "shape": "dot", "size": 1}, {"group": 1, "id": "erro", "label": "erro", "shape": "dot", "size": 2}, {"group": 1, "id": "transa\u00e7\u00e3o n\u00e3o autorizada", "label": "transa\u00e7\u00e3o n\u00e3o autorizada", "shape": "dot", "size": 1}, {"group": 1, "id": "esquecida", "label": "esquecida", "shape": "dot", "size": 1}, {"group": 1, "id": "feito", "label": "feito", "shape": "dot", "size": 1}, {"group": 5, "id": "exigibilidade", "label": "exigibilidade", "shape": "dot", "size": 1}, {"group": 5, "id": "liminar", "label": "liminar", "shape": "dot", "size": 1}, {"group": 6, "id": "extrato", "label": "extrato", "shape": "dot", "size": 1}, {"group": 6, "id": "formato pdf", "label": "formato pdf", "shape": "dot", "size": 1}, {"group": 1, "id": "fevereiro", "label": "fevereiro", "shape": "dot", "size": 1}, {"group": 1, "id": "n\u00e3o paga", "label": "n\u00e3o paga", "shape": "dot", "size": 1}, {"group": 1, "id": "vencimento", "label": "vencimento", "shape": "dot", "size": 1}, {"group": 7, "id": "fechado", "label": "fechado", "shape": "dot", "size": 1}, {"group": 7, "id": "mercado", "label": "mercado", "shape": "dot", "size": 1}, {"group": 8, "id": "funcionalidade de seguran\u00e7a", "label": "funcionalidade de seguran\u00e7a", "shape": "dot", "size": 1}, {"group": 8, "id": "token", "label": "token", "shape": "dot", "size": 1}, {"group": 1, "id": "hoje", "label": "hoje", "shape": "dot", "size": 3}, {"group": 1, "id": "indispon\u00edvel", "label": "indispon\u00edvel", "shape": "dot", "size": 1}, {"group": 1, "id": "instabilidade", "label": "instabilidade", "shape": "dot", "size": 1}, {"group": 2, "id": "renda fixa", "label": "renda fixa", "shape": "dot", "size": 1}, {"group": 2, "id": "tesouro direto", "label": "tesouro direto", "shape": "dot", "size": 1}, {"group": 2, "id": "saque", "label": "saque", "shape": "dot", "size": 2}, {"group": 4, "id": "mastercard", "label": "mastercard", "shape": "dot", "size": 1}, {"group": 1, "id": "nubank", "label": "nubank", "shape": "dot", "size": 1}, {"group": 9, "id": "n\u00e3o determinado", "label": "n\u00e3o determinado", "shape": "dot", "size": 1}, {"group": 9, "id": "tempo de espera", "label": "tempo de espera", "shape": "dot", "size": 1}, {"group": 2, "id": "realizado", "label": "realizado", "shape": "dot", "size": 2}, {"group": 1, "id": "total", "label": "total", "shape": "dot", "size": 1}, {"group": 1, "id": "referente ao atendimento", "label": "referente ao atendimento", "shape": "dot", "size": 1}, {"group": 1, "id": "plano de neg\u00f3cios", "label": "plano de neg\u00f3cios", "shape": "dot", "size": 1}, {"group": 1, "id": "r$100,00", "label": "r$100,00", "shape": "dot", "size": 1}, {"group": 1, "id": "por e-mail", "label": "por e-mail", "shape": "dot", "size": 1}, {"group": 1, "id": "processamento", "label": "processamento", "shape": "dot", "size": 1}, {"group": 1, "id": "processando", "label": "processando", "shape": "dot", "size": 1}, {"group": 1, "id": "pr\u00f3ximo dia \u00fatil", "label": "pr\u00f3ximo dia \u00fatil", "shape": "dot", "size": 1}, {"group": 1, "id": "solicitado", "label": "solicitado", "shape": "dot", "size": 1}, {"group": 1, "id": "tesouro selic", "label": "tesouro selic", "shape": "dot", "size": 1}, {"group": 1, "id": "via e-mail", "label": "via e-mail", "shape": "dot", "size": 1}, {"group": 1, "id": "ted", "label": "ted", "shape": "dot", "size": 1}]);
+                  edges = new vis.DataSet([{"from": "11/02", "title": "ter vencimento,ter vencimento,venceu,contextual proximity", "to": "fatura", "width": 3.75}, {"from": "12 meses", "title": "ser,dura,ser,\u00e9,contextual proximity", "to": "isen\u00e7\u00e3o", "width": 5.0}, {"from": "14/02", "title": "foi agendado,ter data postergada,agendado,contextual proximity", "to": "pagamento", "width": 3.75}, {"from": "15 dias", "title": "possui prazo,possui prazo,tem prazo,passou prazo,possui prazo,contextual proximity", "to": "estabelecimento", "width": 6.25}, {"from": "15 dias", "title": "possui prazo,demora,possui prazo,prazo,contextual proximity", "to": "estorno", "width": 5.0}, {"from": "24h e 7 dias por semana", "title": "est\u00e1 dispon\u00edvel,est\u00e1 dispon\u00edvel,est\u00e1 dispon\u00edvel,est\u00e1 dispon\u00edvel,dispon\u00edvel,dispon\u00edvel,dispon\u00edvel,est\u00e1 dispon\u00edvel,est\u00e1 dispon\u00edvel,contextual proximity", "to": "chat", "width": 11.25}, {"from": "29/02/24", "title": "est\u00e1 dispon\u00edvel,dispon\u00edvel,estar dispon\u00edvel,ser liberado,contextual proximity", "to": "informe de rendimentos", "width": 5.0}, {"from": "5000", "title": "ser maior que,valor,ser,\u00e9,contextual proximity", "to": "investimento", "width": 5.0}, {"from": "72 horas", "title": "ter prazo,demora,ter prazo,contextual proximity", "to": "retorno", "width": 3.75}, {"from": "TED", "title": "\u00e9,ser,\u00e9,\u00e9,ser,contextual proximity", "to": "transfer\u00eancia", "width": 6.25}, {"from": "aberta", "title": "estar,est\u00e1,estar,contextual proximity", "to": "fatura", "width": 3.75}, {"from": "aberto", "title": "estar,ser,ser,estar,contextual proximity", "to": "chamado", "width": 5.0}, {"from": "abertura de conta", "title": "ter problema,ter problema,ter problema,solicitar,ter problema,quer,solicitar,ter problema,tem problema,solicitar,ter problema,ter problema,ter problema,tem problema,tem problema,contextual proximity", "to": "cliente", "width": 18.75}, {"from": "abrir conta", "title": "n\u00e3o pode,n\u00e3o pode,n\u00e3o pode,contextual proximity", "to": "banco", "width": 3.75}, {"from": "abrir conta", "title": "ter problema,n\u00e3o conseguir,tem dificuldade,quer,quer,quer,ter problema,quer,quer,quer,quer,n\u00e3o consegue,quer,quer,quer,quer,n\u00e3o consegue,quer,quer,quer,quer,n\u00e3o consegue,quer,precisa,quer,n\u00e3o consegue,quer,n\u00e3o consegue,quer,quer,quer,quer,tenta,n\u00e3o consegue,quer,n\u00e3o consegue,tenta,quer,quer,quer,quer,n\u00e3o consegue,tenta novamente,quer,n\u00e3o consegue,tenta,n\u00e3o consegue,quer,quer,quer,pode,querer,quer,tenta,n\u00e3o consegue,quer,quer,quer,n\u00e3o consegue,quer,quer,tentou,quer,quer,n\u00e3o consegue,quer,quer,quer,n\u00e3o conseguiu,quer,n\u00e3o quer,quer,precisa,quer,quer,n\u00e3o consegue,quer,quer,quer,n\u00e3o consegue,quer,quer,n\u00e3o consegue,quer,ter problema,n\u00e3o consegue,quer,n\u00e3o consegue,quer,tenta,n\u00e3o quer,quer,ter problema,querer,quer,n\u00e3o consegue,quer,quer,quer,tenta,quer,quer,ter problema,quer,quer,n\u00e3o consegue,quer,tentou,n\u00e3o conseguiu,quer,tenta,quer,quer,contextual proximity", "to": "cliente", "width": 141.25}, {"from": "acessar conta", "title": "ter problema,n\u00e3o consegue,n\u00e3o pode,n\u00e3o conseguir,n\u00e3o conseguir,n\u00e3o consegue,tentar,tenta,ter problema,n\u00e3o conseguir,n\u00e3o consegue,n\u00e3o consegue,ter problema,n\u00e3o consegue,n\u00e3o poder,ter problema,n\u00e3o poder,n\u00e3o conseguir,ter problema,ter problema,n\u00e3o consegue,ter necessidade,ter problema,precisa,ter problema,n\u00e3o consegue,ter problema,ter problema,ter objetivo,ter problema,contextual proximity", "to": "cliente", "width": 37.5}, {"from": "acesso", "title": "n\u00e3o ter,ter problema,ter problema,ter,n\u00e3o ter,n\u00e3o tem,ter,n\u00e3o ter,ter problema,obt\u00e9m,n\u00e3o tem,n\u00e3o receber,quer,ter,n\u00e3o tem,n\u00e3o tem,n\u00e3o tem,n\u00e3o tem,n\u00e3o tem,n\u00e3o tem,n\u00e3o tem,contextual proximity", "to": "cliente", "width": 26.25}, {"from": "acesso", "title": "ter problema,ter problema,ter problema,contextual proximity", "to": "conta", "width": 3.75}, {"from": "acesso a conta", "title": "ter problema,ter problema,ter problema,ter problema,ter problema,ter problema,ter problema,ter problema,ter problema,tem problema,n\u00e3o ter,ter problema,ter problema,ter problema,n\u00e3o tem,ter problema,ter problema,ter problema,ter problema,tem problema,tem problema,ter problema,ter problema,n\u00e3o ter,ter problema,possui problema,contextual proximity", "to": "cliente", "width": 32.5}, {"from": "adicional", "title": "ser,ser,\u00e9,\u00e9,\u00e9,contextual proximity", "to": "cart\u00e3o", "width": 6.25}, {"from": "agendada", "title": "ter status,ser,est\u00e1,contextual proximity", "to": "transfer\u00eancia", "width": 3.75}, {"from": "ainda", "title": "n\u00e3o chegou,n\u00e3o caiu,n\u00e3o chegou,contextual proximity", "to": "transfer\u00eancia", "width": 3.75}, {"from": "ajuda", "title": "agradece,agradecer,precisa,precisa,agradece,agradece,agradece,agradece,obt\u00e9m,pede,solicita,agradece,agradece,obter,agradece,obter,quer saber,agradece,contextual proximity", "to": "cliente", "width": 22.5}, {"from": "analisado", "title": "ser\u00e1,ser,ser,contextual proximity", "to": "caso", "width": 3.75}, {"from": "antecipar parcelas", "title": "quer,quer,quer,deseja,quer,quer,quer,poder,quer,quer,quer,quer,deseja,quer,deseja,deseja,querer,precisa,quer,quer,querer,quer,querer,deseja,quer,contextual proximity", "to": "cliente", "width": 31.25}, {"from": "antecipa\u00e7\u00e3o", "title": "confirma,confirma,oferecer,executa,confirma,confirma,confirma,confirma,realizar,faz,confirma,confirmar,confirma,confirma,realiza,efetua,realiza,confirmar,confirma,efetua,confirma,contextual proximity", "to": "atendente", "width": 26.25}, {"from": "antecipa\u00e7\u00e3o", "title": "autoriza,confirma,confirma,confirma,solicita,solicitar,solicita,confirma,confirma,solicita,confirma,autoriza,confirma,confirma,confirma,confirmar,confirma,confirma,confirmar,solicitar,n\u00e3o quer,confirma,autoriza,contextual proximity", "to": "cliente", "width": 28.75}, {"from": "antecipa\u00e7\u00e3o", "title": "contextual proximity", "to": "desconto", "width": 1.0}, {"from": "antecipa\u00e7\u00e3o", "title": "contextual proximity", "to": "irrevers\u00edvel", "width": 1.0}, {"from": "antecipa\u00e7\u00e3o", "title": "contextual proximity", "to": "realizada", "width": 0.75}, {"from": "antecipa\u00e7\u00e3o", "title": "contextual proximity", "to": "sucesso", "width": 0.75}, {"from": "anuidade", "title": "possui,possui,ter,ter,possui,possui,possui,contextual proximity", "to": "cart\u00e3o", "width": 8.75}, {"from": "anuidade", "title": "n\u00e3o ter,ter,ter,contextual proximity", "to": "cart\u00e3o black", "width": 3.75}, {"from": "anuidade", "title": "contextual proximity", "to": "isenta", "width": 1.0}, {"from": "an\u00e1lise", "title": "estar,estar,estar,estar,estar,estar,contextual proximity", "to": "conta", "width": 7.5}, {"from": "an\u00e1lise de cr\u00e9dito", "title": "precisa,passa por,n\u00e3o \u00e9 garantido,contextual proximity", "to": "cart\u00e3o black", "width": 3.75}, {"from": "apar\u00eancia", "title": "n\u00e3o sofrer altera\u00e7\u00e3o,n\u00e3o sofrer altera\u00e7\u00e3o,n\u00e3o sofrer altera\u00e7\u00e3o,contextual proximity", "to": "cart\u00e3o", "width": 3.75}, {"from": "aplicativo", "title": "contextual proximity", "to": "bot\u00e3o", "width": 0.75}, {"from": "aplicativo", "title": "contextual proximity", "to": "bot\u00e3o \u2630", "width": 1.0}, {"from": "aplicativo", "title": "pode escolher,poder contratar,n\u00e3o consegue,est\u00e1,ver,atualizou,atualizar,desinstalar,reinstalar,pode escolher,fecha,abre,n\u00e3o ter acesso,est\u00e1,atualiza,usa,fechar,ter,tem problema,ter problema,abrir,ter acesso,ter acesso,estar,acessar,pode consultar,acessar,ter problema,atualizar,tenta,entra,pode escolher,retorna contato,contextual proximity", "to": "cliente", "width": 41.25}, {"from": "aplicativo", "title": "contextual proximity", "to": "desatualizado", "width": 4.25}, {"from": "aplicativo", "title": "ser\u00e1 enviada,ser\u00e1 enviada,enviada,enviada,enviada,ser\u00e1 enviada,enviada,enviada,enviada,enviada,enviada,ser\u00e1 enviada,enviada,enviada,contextual proximity", "to": "pesquisa", "width": 17.5}, {"from": "aplicativo", "title": "poder,confirmado,pode ser feito,contextual proximity", "to": "resgate", "width": 3.75}, {"from": "aplicativo", "title": "feita por,n\u00e3o autorizado,ser,\u00e9 feita,\u00e9 feita,contextual proximity", "to": "transfer\u00eancia", "width": 6.25}, {"from": "app", "title": "contextual proximity", "to": "atualiza\u00e7\u00e3o", "width": 1.25}, {"from": "app", "title": "ter acesso,tenta,estar,tenta,acessa,tem problema,ter problema,tenta,tenta,n\u00e3o consegue,tem problema,quer saber,n\u00e3o conseguir,est\u00e1 baixando,ter problema,tentou,retornar contato,tenta,tenta,baixou,ter problema,contextual proximity", "to": "cliente", "width": 26.25}, {"from": "assessor", "title": "ter,possui,ter contato,obter ajuda,tem,deve contatar,n\u00e3o tem,tem problema,possui,pode escolher,ter problema,n\u00e3o querer,ter que entrar em contato,entrou em contato,ter tentado contato,n\u00e3o tem,ter,contextual proximity", "to": "cliente", "width": 21.25}, {"from": "assessor", "title": "contextual proximity", "to": "contato", "width": 0.75}, {"from": "assinatura de documentos", "title": "pedir,pedir,pedir,pedir,pedir,contextual proximity", "to": "conta", "width": 6.25}, {"from": "assinatura de token", "title": "pedir,pedir,pedir,contextual proximity", "to": "conta", "width": 3.75}, {"from": "assinatura de token", "title": "pedir,pedir,pedir,contextual proximity", "to": "internet banking", "width": 3.75}, {"from": "atendente", "title": "contextual proximity", "to": "atendimento", "width": 17.5}, {"from": "atendente", "title": "contextual proximity", "to": "cancelamento", "width": 4.5}, {"from": "atendente", "title": "contextual proximity", "to": "cart\u00e3o", "width": 7.0}, {"from": "atendente", "title": "contextual proximity", "to": "caso", "width": 7.75}, {"from": "atendente", "title": "contextual proximity", "to": "chamado", "width": 8.5}, {"from": "atendente", "title": "contextual proximity", "to": "chat", "width": 5.5}, {"from": "atendente", "title": "agradece,agradece,n\u00e3o responde,n\u00e3o responde,obter ajuda,agradecer,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responder,n\u00e3o responde,agradece,agradecer,agradece,obt\u00e9m solu\u00e7\u00e3o,agradecer,agradece,agradece,agradece,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,fala com,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responder,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradecer,obter ajuda,agradece,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,obt\u00e9m ajuda,agradece,n\u00e3o responde,pede ajuda,n\u00e3o responde,agradece,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responde,agradecer,obter ajuda,fornece informa\u00e7\u00f5es,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,entrou em contato com,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responde,agradece,n\u00e3o responde,agradecer,agradece,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradece,agradece,agradece,agradece,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradece,agradecer,n\u00e3o responde,n\u00e3o responde,agradecer,agradece,obt\u00e9m ajuda,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,agradece,agradece,n\u00e3o responde,n\u00e3o responde,agradece,agradece,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradecer,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o respondeu,agradecer,agradecer,agradece,agradece,n\u00e3o responde,n\u00e3o responde,agradece,agradecer,n\u00e3o responde,agradece,n\u00e3o responde,agradece,agradece,n\u00e3o responde,n\u00e3o responde,agradece,agradece,n\u00e3o responde,n\u00e3o responde,chama,n\u00e3o responde,agradece,n\u00e3o responde,agradecer,agradecer,n\u00e3o responde,agradece,agradece,agradece,n\u00e3o responde,n\u00e3o responde,recebe ajuda,agradece,n\u00e3o responder,n\u00e3o responde,n\u00e3o responde,agradece,agradece,n\u00e3o responde,obter ajuda,agradece,n\u00e3o responde,agradece,agradece,agradece,agradecer,n\u00e3o responder,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,entrar em contato,agradecer,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradece,n\u00e3o responde,agradece,n\u00e3o responde,obtem ajuda,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradecer,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,agradecer,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,n\u00e3o responder,n\u00e3o responde,n\u00e3o responde,n\u00e3o responder,n\u00e3o responde,n\u00e3o responde,agradecer,agradece,n\u00e3o responde,agradece,n\u00e3o responde,n\u00e3o responde,contextual proximity", "to": "cliente", "width": 319.25}, {"from": "atendente", "title": "contextual proximity", "to": "conta", "width": 5.5}, {"from": "atendente", "title": "contextual proximity", "to": "contato", "width": 9.5}, {"from": "atendente", "title": "contextual proximity", "to": "e-mail", "width": 12.75}, {"from": "atendente", "title": "contextual proximity", "to": "email", "width": 4.0}, {"from": "atendente", "title": "contextual proximity", "to": "informa\u00e7\u00e3o", "width": 7.25}, {"from": "atendente", "title": "contextual proximity", "to": "informa\u00e7\u00f5es", "width": 13.25}, {"from": "atendente", "title": "contextual proximity", "to": "notifica\u00e7\u00e3o", "width": 5.5}, {"from": "atendente", "title": "contextual proximity", "to": "passo a passo", "width": 5.0}, {"from": "atendente", "title": "contextual proximity", "to": "print", "width": 15.25}, {"from": "atendente", "title": "contextual proximity", "to": "print da tela", "width": 6.5}, {"from": "atendente", "title": "contextual proximity", "to": "retorno", "width": 7.75}, {"from": "atendente", "title": "contextual proximity", "to": "retorno por e-mail", "width": 5.0}, {"from": "atendente", "title": "contextual proximity", "to": "sistema", "width": 3.75}, {"from": "atendente", "title": "ser negada,\u00e9 feita,n\u00e3o foi identificada,contextual proximity", "to": "solicita\u00e7\u00e3o", "width": 14.25}, {"from": "atendente", "title": "contextual proximity", "to": "time especialista", "width": 4.0}, {"from": "atendente", "title": "agradecer,n\u00e3o responde,n\u00e3o responde,chama,obter ajuda,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,n\u00e3o responde,contextual proximity", "to": "usu\u00e1rio", "width": 12.5}, {"from": "atendimento", "title": "agradece,agradece,esta em,agradece,agradecer,espera,agradece,agradecer,agradecer,agradece,agradece,solicita,agradecer,agradecer,agradece,agradece,agradece,agradece,estava em,agradece,agradecer,procura,agradecer,agradece,agradece,agradece,aguardar,solicita,agradece,n\u00e3o est\u00e1,avalia,agradece,espera,agradece,contextual proximity", "to": "cliente", "width": 42.75}, {"from": "atendimento", "title": "avalia,avalia,\u00e9 sobre,avalia,referente,ser sobre,avalia,avalia,avalia,avalia,avalia,referente,avalia,contextual proximity", "to": "pesquisa", "width": 16.25}, {"from": "atendimento", "title": "contextual proximity", "to": "tempo decorrido", "width": 1.5}, {"from": "ativa", "title": "esta,ser,estar,estar,estar,estar,estar,contextual proximity", "to": "conta", "width": 8.75}, {"from": "ativa", "title": "continua,permanece,estar,ser,estar,contextual proximity", "to": "conta investimento", "width": 6.25}, {"from": "ativa", "title": "esta,estar,est\u00e1,estar,contextual proximity", "to": "portabilidade", "width": 5.0}, {"from": "ativa\u00e7\u00e3o", "title": "ter problema,ter problema,ter problema,contextual proximity", "to": "cart\u00e3o", "width": 3.75}, {"from": "ativo", "title": "estar,esta,n\u00e3o estar,contextual proximity", "to": "beneficio", "width": 3.75}, {"from": "ativo", "title": "est\u00e1,est\u00e1,esta,est\u00e1,estava,estar,est\u00e1,est\u00e1,est\u00e1,estar,estar,esta,est\u00e1,est\u00e1,estar,estar,est\u00e1,contextual proximity", "to": "cart\u00e3o", "width": 21.25}, {"from": "ativo", "title": "estar,n\u00e3o estar,ser,contextual proximity", "to": "cashback", "width": 3.75}, {"from": "atrasada", "title": "esta,estar,estar,estava,estar,contextual proximity", "to": "fatura", "width": 6.25}, {"from": "atualizar aplicativo", "title": "ser,ser,ser,ser,contextual proximity", "to": "solu\u00e7\u00e3o", "width": 5.0}, {"from": "atualiza\u00e7\u00e3o", "title": "contextual proximity", "to": "problema", "width": 1.0}, {"from": "aumentar limite", "title": "quer,quer,quer,n\u00e3o consegue,quer,quer,quer,quer,quer,quer,querer,quer,quer,quer,querer,quer,quer,precisa,quer,n\u00e3o conseguir,quer,poder,tenta,pode,quer,quer,quer,quer,pode,quer,querer,quer,deseja,precisa,quer,querer,quer,quer,n\u00e3o consegue,contextual proximity", "to": "cliente", "width": 48.75}, {"from": "aumento de limite", "title": "solicita,solicita,n\u00e3o querer,querer,solicita,quer,solicitar,quer,quer,tem problema,pede,quer,solicitar,solicita,solicita,solicita,solicita,solicita,solicitou,solicitar,solicitar,solicita,quer,ter problema,solicita,querer,obter,pediu,solicita,solicita,solicitar,solicitar,solicita,solicitar,quer,contextual proximity", "to": "cliente", "width": 43.75}, {"from": "ausente", "title": "esta,esta,esta,esta,esta,esta,esta,esta,esta,esta,esta,est\u00e1,esta,esta,esta,esta,esta,estar,esta,esta,esta,esta,esta,esta,esta,contextual proximity", "to": "cliente", "width": 31.25}, {"from": "autorizada", "title": "foi,foi,n\u00e3o foi,n\u00e3o foi,n\u00e3o \u00e9,contextual proximity", "to": "compra", "width": 6.25}, {"from": "avaliar atendimento", "title": "tem objetivo,tem objetivo,objetivo,objetivo,tem objetivo,contextual proximity", "to": "pesquisa", "width": 6.25}, {"from": "banco", "title": "contextual proximity", "to": "cliente", "width": 1.5}, {"from": "banco", "title": "contextual proximity", "to": "encerrar conta", "width": 0.75}, {"from": "banco", "title": "contextual proximity", "to": "funcionalidade", "width": 0.75}, {"from": "banco", "title": "contextual proximity", "to": "informa\u00e7\u00f5es", "width": 1.0}, {"from": "banco", "title": "n\u00e3o consta,ser autorizado,\u00e9 negado,contextual proximity", "to": "pagamento", "width": 3.75}, {"from": "banking", "title": "ter,\u00e9,\u00e9,\u00e9,\u00e9,contextual proximity", "to": "conta", "width": 6.25}, {"from": "benef\u00edcio", "title": "contextual proximity", "to": "cashback", "width": 0.75}, {"from": "benef\u00edcio", "title": "contextual proximity", "to": "iof especial", "width": 0.75}, {"from": "biometria", "title": "n\u00e3o ter,ter problema,cadastra,n\u00e3o quer usar,n\u00e3o tem,tem problema,ter problema,ter problema,ter problema,ter problema,ter,tem problema,n\u00e3o tem,quer saber,ter problema,tem problema,contextual proximity", "to": "cliente", "width": 20.0}, {"from": "black", "title": "\u00e9,\u00e9,\u00e9,estar,\u00e9,contextual proximity", "to": "cart\u00e3o", "width": 6.25}, {"from": "bloqueada", "title": "estar,estar,est\u00e1,est\u00e1,estar,foi,estar,n\u00e3o estar,ter problema,estar,ter problema,ter problema,esta,estar,estar,est\u00e1,estar,est\u00e1,estava,estar,est\u00e1,ser,est\u00e1,ter problema,estar,estar,estar,ter problema,ter problema,estar,estar,est\u00e1,ter problema,estar,est\u00e1,estar,estar,estar,ter problema,estar,estar,ter problema,ter problema,ter problema,est\u00e1,estar,est\u00e1,estar,contextual proximity", "to": "conta", "width": 60.0}, {"from": "bloqueado", "title": "estar,esta,ter problema,esta,ter problema,esta,esta,esta,estar,\u00e9,est\u00e1,estava,esta,est\u00e1,ter problema,estar,estar,ter problema,esta,est\u00e1,estar,est\u00e1,esta,esta,estar,esta,esta,est\u00e1,est\u00e1,estar,est\u00e1,est\u00e1,esta,aparece,est\u00e1,est\u00e1,est\u00e1,ter problema,esta,esta,esta,esta,esta,esta,est\u00e1,esta,ter problema,estar,est\u00e1,est\u00e1,ser,foi,ser,ter problema,est\u00e1,foi,esta,esta,esta,ser,est\u00e1,est\u00e1,esta,esta,esta,ser,estar,esta,esta,est\u00e1,est\u00e1,ter problema,est\u00e1,esta,esta,ser,foi,est\u00e1,estava,estar,esta,estar,est\u00e1,esta,esta,est\u00e1,estar,est\u00e1,estar,esta,ser\u00e1,estar,foi,estar,esta,estar,esta,esta,estava,est\u00e1,estar,estar,esta,est\u00e1,estar,estar,est\u00e1,esta,esta,esta,esta,permanece,est\u00e1,estar,esta,esta,est\u00e1,esta,esta,esta,est\u00e1,fica,foi,estar,esta,ser,est\u00e1,esta,estar,esta,estar,ser,esta,esta,est\u00e1,esta,foi,estar,esta,est\u00e1,ser\u00e1,esta,contextual proximity", "to": "cart\u00e3o", "width": 177.5}, {"from": "bloqueado", "title": "foi,est\u00e1,foi,contextual proximity", "to": "cart\u00e3o de cr\u00e9dito", "width": 3.75}, {"from": "bloqueado", "title": "est\u00e1,ter\u00e1 que ser,aparecer,contextual proximity", "to": "cart\u00e3o f\u00edsico", "width": 3.75}, {"from": "bloqueado", "title": "ser,est\u00e1,estar,contextual proximity", "to": "limite", "width": 3.75}, {"from": "bloqueado", "title": "estar,est\u00e1,estar,contextual proximity", "to": "pix", "width": 3.75}, {"from": "bloqueio", "title": "ter solu\u00e7\u00e3o,n\u00e3o ter,ter,ter problema,ter problema,contextual proximity", "to": "cart\u00e3o", "width": 6.25}, {"from": "bloqueio", "title": "ter problema,ter,ter problema,ter problema,contextual proximity", "to": "cart\u00e3o de cr\u00e9dito", "width": 5.0}, {"from": "bloqueio", "title": "fez,solicitou,n\u00e3o quer,tem problema,n\u00e3o querer,solicita,ter d\u00favida,ter problema,possui,ter problema,tem problema,n\u00e3o entender,fez,possui,tem d\u00favida,aceita,solicitar,tem problema,contextual proximity", "to": "cliente", "width": 22.5}, {"from": "bloqueio", "title": "n\u00e3o tem,n\u00e3o tem,n\u00e3o tem,n\u00e3o ter,ter problema,n\u00e3o tem,n\u00e3o ter,ter problema,possui,ter,contextual proximity", "to": "conta", "width": 12.5}, {"from": "bloqueio", "title": "contextual proximity", "to": "dados desatualizados", "width": 0.75}, {"from": "bloqueio", "title": "contextual proximity", "to": "judicial", "width": 1.0}, {"from": "bloqueio", "title": "contextual proximity", "to": "parcelamento", "width": 0.75}, {"from": "bloqueio", "title": "contextual proximity", "to": "por seguran\u00e7a", "width": 0.75}, {"from": "bloqueio", "title": "contextual proximity", "to": "preventivo", "width": 1.5}, {"from": "bloqueio", "title": "contextual proximity", "to": "seguran\u00e7a", "width": 1.5}, {"from": "bloqueio do cart\u00e3o", "title": "levar a,levar a,levar a,levar a,contextual proximity", "to": "causa", "width": 5.0}, {"from": "bloqueio parcial", "title": "contextual proximity", "to": "conta", "width": 0.75}, {"from": "bloqueio preventivo", "title": "ter,ter,ter,contextual proximity", "to": "cart\u00e3o", "width": 3.75}, {"from": "boleto", "title": "ser paga,foi paga,paga,paga,contextual proximity", "to": "fatura", "width": 5.0}, {"from": "boleto", "title": "feito,ser feito,foi,foi feito,ser feito,foi,contextual proximity", "to": "pagamento", "width": 7.5}, {"from": "btg", "title": "foi migrada,era administrada,ser de,origem,ser,ser,contextual proximity", "to": "conta", "width": 7.5}, {"from": "btg", "title": "virou,virou,foi comprada por,contextual proximity", "to": "empiricus", "width": 3.75}, {"from": "btg", "title": "foi estornada,foi,origem,destino,contextual proximity", "to": "transfer\u00eancia", "width": 5.0}, {"from": "btg investimentos", "title": "ser,ser,ser,ser,ser,contextual proximity", "to": "conta", "width": 6.25}, {"from": "cancelada", "title": "ser,foi,esta,n\u00e3o foi,ser,foi,foi,foi,foi,estar,foi,contextual proximity", "to": "compra", "width": 13.75}, {"from": "cancelada", "title": "ser,foi,ser,ser,contextual proximity", "to": "plataforma", "width": 5.0}, {"from": "cancelada", "title": "ser,foi,foi,contextual proximity", "to": "transfer\u00eancia", "width": 3.75}, {"from": "cancelada", "title": "foi,ser,est\u00e1,contextual proximity", "to": "transfer\u00eancia de cust\u00f3dia", "width": 3.75}, {"from": "cancelado", "title": "estar,estar,\u00e9,foi,pode ser,estar,foi,foi,\u00e9,foi,ser,foi,esta,foi,foi,ser,estar,foi,ser\u00e1,\u00e9,foi,estar,foi,ser,ser,ser,contextual proximity", "to": "cart\u00e3o", "width": 32.5}, {"from": "cancelado", "title": "foi,ser,foi,foi,foi,estava,contextual proximity", "to": "cart\u00e3o de cr\u00e9dito", "width": 7.5}, {"from": "cancelamento", "title": "solicita,solicitou,pede,obtem solu\u00e7\u00e3o,solicitar,solicitar,quer,solicitar,quer,solicita,informa,confirma,confirma,pede,solicita,solicitar,confirmar,querer,quer,solicitar,confirma,solicitar,pediu,pede,autoriza,pedir,ter solicitado,pediu,autorizar,solicita,solicitar,solicita,confirma,aceitar,solicita,solicitou,solicita,confirma,contextual proximity", "to": "cliente", "width": 47.5}, {"from": "cancelamento", "title": "possui prazo,n\u00e3o aceita,realizou,contextual proximity", "to": "estabelecimento", "width": 5.25}, {"from": "cancelar cart\u00e3o", "title": "quer,deseja,quer,n\u00e3o consegue,n\u00e3o pode,quer,querer,quer,quer,querer,quer,quer,n\u00e3o consegue,quer,n\u00e3o consegue,quer,deseja,quer,deseja,quer,quer,quer,pode,quer,querer,amea\u00e7a,quer,querer,quer,quer,quer,quer,quer,quer,n\u00e3o consegue,querer,quer,decide,pretender,quer,deseja,quer,quer,quer,querer,tentou,quer,quer,quer,quer,contextual proximity", "to": "cliente", "width": 62.5}, {"from": "cancelar conta", "title": "n\u00e3o pode,quer,quer,quer,quer,quer,quer,tentou,quer,querer,quer,quer,querer,quer,querer,quer,quer,tenta,quer,contextual proximity", "to": "cliente", "width": 23.75}, {"from": "cart\u00e3o", "title": "ativar,tem problema,ter problema,ter problema,possui,tem problema,solicitar,ter problema,n\u00e3o possui,quer usar,precisa,usar,ter problema,tem problema,n\u00e3o usa,n\u00e3o utiliza,ter problema,cancelou,possui,possui,tem problema,possui,clica,possui,precisar,ter problema,n\u00e3o usar,ter problema,possui,ter problema,n\u00e3o receber,possui,perdeu,usa muito,n\u00e3o ter,n\u00e3o ter recebido,bloqueou,possui,bloqueou,tenta usar,ter problema,tem,n\u00e3o usa,n\u00e3o recebeu,bloquear,n\u00e3o ter,possui,n\u00e3o recebeu,bloquear,possui,solicitar,n\u00e3o usa,ter,obter informa\u00e7\u00e3o,bloqueou,solicitou,n\u00e3o usa,solicitar,solicitar,n\u00e3o ter,estava usando,perdeu,possui,solicita,n\u00e3o receber,bloqueia,ter,possui,ter problema,congelou,n\u00e3o tem,possui,bloqueou,n\u00e3o ter,possui,possui,n\u00e3o ter,solicita,ter problema,solicitar,n\u00e3o ter,bloquear,contextual proximity", "to": "cliente", "width": 105.5}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "clonado", "width": 2.25}, {"from": "cart\u00e3o", "title": "n\u00e3o ser aprovada,ocorreu,foi feita por,foi negada,\u00e9 feita,foi,n\u00e3o autorizada,ser feita,foi feita,foi feita,contextual proximity", "to": "compra", "width": 14.0}, {"from": "cart\u00e3o", "title": "esta em,forma pagamento,foi feita,estar,estar,estar,ocorrer,ser feita por,foi feita,contextual proximity", "to": "compra n\u00e3o reconhecida", "width": 12.25}, {"from": "cart\u00e3o", "title": "est\u00e3o,est\u00e3o,foram feitas,contextual proximity", "to": "compras n\u00e3o reconhecidas", "width": 5.5}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "compras online", "width": 1.0}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "compras online bloqueadas", "width": 0.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "cr\u00e9dito", "width": 2.0}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "desbloqueado", "width": 1.5}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "d\u00e9bito", "width": 2.25}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "entregue", "width": 1.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "fun\u00e7\u00e3o compras online", "width": 0.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "fun\u00e7\u00e3o cr\u00e9dito", "width": 1.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "fun\u00e7\u00e3o d\u00e9bito", "width": 1.0}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "habilitado", "width": 0.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "isen\u00e7\u00e3o", "width": 0.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "layout", "width": 0.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "limite", "width": 1.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "mensalidade", "width": 0.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "n\u00e3o chegou", "width": 0.75}, {"from": "cart\u00e3o", "title": "est\u00e1,estar,est\u00e1,contextual proximity", "to": "pend\u00eancia", "width": 3.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "recebido", "width": 0.75}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "roubado", "width": 1.0}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "sim", "width": 1.5}, {"from": "cart\u00e3o", "title": "contextual proximity", "to": "virtual", "width": 1.75}, {"from": "cart\u00e3o adicional", "title": "contextual proximity", "to": "entregue", "width": 0.75}, {"from": "cart\u00e3o adicional", "title": "contextual proximity", "to": "fun\u00e7\u00e3o cr\u00e9dito", "width": 0.75}, {"from": "cart\u00e3o black", "title": "possui,poder ter,deseja,quer,possui,possui,quer,solicitar,quer,quer,possui,ter interesse,deseja,quer,querer,quer,possui,quer,possui,possui,ter,n\u00e3o usar,possui,tem interesse,n\u00e3o tem,pode obter,solicitar,quer,possui,possui,solicitar,solicitar,solicitar,solicitar,quer,querer,quer,quer,ter interesse,possui,n\u00e3o tem,solicita,quer,ter direito,quer,quer,quer,quer,possui,possui,solicitar,quer,quer,quer,contratar,deseja,quer,quer,n\u00e3o tem,contextual proximity", "to": "cliente", "width": 73.75}, {"from": "cart\u00e3o black", "title": "contextual proximity", "to": "dispon\u00edvel", "width": 0.75}, {"from": "cart\u00e3o black", "title": "contextual proximity", "to": "investimento", "width": 0.75}, {"from": "cart\u00e3o black", "title": "contextual proximity", "to": "isen\u00e7\u00e3o de anuidade", "width": 1.25}, {"from": "cart\u00e3o bloqueado", "title": "tem problema,ter problema,ter problema,tem problema,tem problema,tem problema,ter problema,ter problema,ter problema,ter problema,ter problema,tem problema,tem problema,ter problema,tem problema,ter problema,ter problema,ter problema,tem problema,ter problema,tem problema,ter problema,ter problema,ter problema,tem problema,tem problema,ter problema,ter problema,ter problema,ter problema,ter problema,tem problema,tem problema,ter problema,tem problema,ter problema,tem problema,ter problema,tem problema,tem problema,tem problema,tem problema,ter problema,tem problema,ter problema,tem problema,tem problema,ter problema,ter problema,possui problema,tem problema,tem problema,tem problema,tem problema,tem problema,tem problema,tem problema,ter problema,tem problema,tem problema,ter problema,tem problema,tem problema,tem problema,ter problema,tem problema,ter problema,ter problema,ter problema,tem problema,ter problema,tem problema,tem problema,ter problema,tem problema,ter problema,ter problema,ter problema,tem problema,ter problema,ter problema,ter problema,ter problema,tem problema,tem problema,ter problema,ter problema,ter problema,ter problema,tem problema,tem problema,ter problema,ter problema,ter problema,ter problema,tem problema,ter problema,tem problema,ter problema,tem problema,ter problema,ter problema,tem problema,tem problema,ter problema,tem problema,tem problema,ter problema,tem problema,tem problema,tem problema,tem problema,tem problema,tem problema,tem problema,tem problema,ter problema,ter problema,ter problema,tem problema,tem problema,tem problema,ter problema,tem problema,tem problema,tem problema,tem problema,tem problema,tem problema,ter problema,ter problema,tem problema,tem problema,contextual proximity", "to": "cliente", "width": 166.5}, {"from": "cart\u00e3o bloqueado", "title": "contextual proximity", "to": "consequ\u00eancia", "width": 7.0}, {"from": "cart\u00e3o bloqueado", "title": "contextual proximity", "to": "consequ\u00eancia de pagamento n\u00e3o efetuado", "width": 1.5}, {"from": "cart\u00e3o bloqueado", "title": "contextual proximity", "to": "fatura", "width": 1.75}, {"from": "cart\u00e3o de cr\u00e9dito", "title": "possui,possui,tem problema,quer,quer,tem problema,possui,ter d\u00favida,quer,usar,solicitar,contratar,ter problema,possui,n\u00e3o quer,tem problema,possui,usa,ter,possui,quer,possui,quer,receber,n\u00e3o solicitar,possui,possui,deseja,tem duvida,possui,solicitar,ter problema,ter,tem problema,n\u00e3o ter,tem problema,possui,solicita,solicita,quer,ter problema,solicita,receber,ter,possui,quer saber,quer,possui,tem,contextual proximity", "to": "cliente", "width": 62.25}, {"from": "cart\u00e3o de cr\u00e9dito", "title": "foi negada,ser feita,foi feita,foi no,usa,foi feita com,foi feita em,recusada,contextual proximity", "to": "compra", "width": 10.0}, {"from": "cart\u00e3o de cr\u00e9dito", "title": "esta em,foi feita em,foi feita em,foi feita,estar,contextual proximity", "to": "compra n\u00e3o reconhecida", "width": 6.25}, {"from": "cart\u00e3o de cr\u00e9dito", "title": "ser,ser,pertence,ser,ser paga,contextual proximity", "to": "fatura", "width": 6.25}, {"from": "cart\u00e3o de cr\u00e9dito digital", "title": "ter,ter,ter,contextual proximity", "to": "conta", "width": 3.75}, {"from": "cart\u00e3o de cr\u00e9dito digital", "title": "contextual proximity", "to": "eqi", "width": 0.75}, {"from": "cart\u00e3o de d\u00e9bito", "title": "possui,ter,possui,contextual proximity", "to": "conta", "width": 3.75}, {"from": "cart\u00e3o virtual", "title": "consta,usar,ser feita,contextual proximity", "to": "compra", "width": 3.75}, {"from": "cart\u00e3o virtual", "title": "foi feita,foi feita,ocorreu em,foi feita,foi feita,ocorreu em,foi feita,contextual proximity", "to": "compra n\u00e3o reconhecida", "width": 8.75}, {"from": "cart\u00e3o virtual", "title": "contextual proximity", "to": "eqi", "width": 0.75}, {"from": "car\u00e1ter individual", "title": "n\u00e3o ter,n\u00e3o tem,ter,n\u00e3o tem,n\u00e3o ter,n\u00e3o tem,contextual proximity", "to": "encerramento", "width": 7.5}, {"from": "car\u00e1ter individual", "title": "n\u00e3o tem,n\u00e3o ter,n\u00e3o tem,n\u00e3o tem,n\u00e3o tem,n\u00e3o tem,contextual proximity", "to": "recusa", "width": 7.5}, {"from": "cashback", "title": "receber,contratar,n\u00e3o gosta,ter duvida,pergunta,ter problema,n\u00e3o tem,contratou,ter programa,querer cancelar,n\u00e3o querer,contrata,ter problema,possui,recebe,contextual proximity", "to": "cliente", "width": 18.75}, {"from": "cashback", "title": "gera,gera,gera,contextual proximity", "to": "cobran\u00e7a", "width": 3.75}, {"from": "caso", "title": "contextual proximity", "to": "time de especialistas", "width": 0.75}, {"from": "caso", "title": "contextual proximity", "to": "time interno", "width": 1.0}, {"from": "causa", "title": "ser,ser,ser,ser,ser,ser,ser,contextual proximity", "to": "fatura n\u00e3o paga", "width": 8.75}, {"from": "causa", "title": "contextual proximity", "to": "pagamento n\u00e3o efetuado", "width": 0.75}, {"from": "cdb", "title": "contextual proximity", "to": "liquidez di\u00e1ria", "width": 0.75}, {"from": "chat", "title": "aguarda,estava,n\u00e3o est\u00e1,n\u00e3o pode esperar,pode contatar,n\u00e3o encontrar,permanece,n\u00e3o responde,n\u00e3o est\u00e1,pode acionar,n\u00e3o est\u00e1,n\u00e3o est\u00e1,n\u00e3o est\u00e1,aguarda,n\u00e3o est\u00e1,n\u00e3o est\u00e1,pode acionar,n\u00e3o estar,permanece,pode acionar,n\u00e3o est\u00e1,permanecer,acionar,entra em contato,n\u00e3o est\u00e1,n\u00e3o est\u00e1,entrou em,pode acionar,entrou em contato,acionou,n\u00e3o est\u00e1,n\u00e3o retorna,n\u00e3o interage,n\u00e3o est\u00e1,pode acionar,contextual proximity", "to": "cliente", "width": 43.75}, {"from": "chat", "title": "contextual proximity", "to": "dispon\u00edvel", "width": 0.75}, {"from": "chat", "title": "contextual proximity", "to": "dispon\u00edvel 24h e 7 dias por semana", "width": 0.75}, {"from": "chat", "title": "contextual proximity", "to": "encerrado", "width": 0.75}, {"from": "chat", "title": "contextual proximity", "to": "sem intera\u00e7\u00e3o", "width": 4.75}, {"from": "cliente", "title": "contextual proximity", "to": "cobran\u00e7a", "width": 4.0}, {"from": "cliente", "title": "contextual proximity", "to": "cobran\u00e7a indevida", "width": 16.25}, {"from": "cliente", "title": "contextual proximity", "to": "compra", "width": 17.75}, {"from": "cliente", "title": "contextual proximity", "to": "compra n\u00e3o reconhecida", "width": 10.25}, {"from": "cliente", "title": "contextual proximity", "to": "comprovante", "width": 6.5}, {"from": "cliente", "title": "contextual proximity", "to": "conta", "width": 15.75}, {"from": "cliente", "title": "contextual proximity", "to": "conta banking", "width": 4.75}, {"from": "cliente", "title": "contextual proximity", "to": "conta bloqueada", "width": 5.75}, {"from": "cliente", "title": "contextual proximity", "to": "conta corrente", "width": 7.75}, {"from": "cliente", "title": "contextual proximity", "to": "conta encerrada", "width": 4.0}, {"from": "cliente", "title": "contextual proximity", "to": "conta investimento", "width": 8.25}, {"from": "cliente", "title": "contextual proximity", "to": "contato", "width": 5.25}, {"from": "cliente", "title": "contextual proximity", "to": "desbloquear cart\u00e3o", "width": 4.25}, {"from": "cliente", "title": "contextual proximity", "to": "desbloqueio", "width": 3.75}, {"from": "cliente", "title": "contextual proximity", "to": "dinheiro", "width": 5.75}, {"from": "cliente", "title": "contextual proximity", "to": "d\u00favida", "width": 10.25}, {"from": "cliente", "title": "contextual proximity", "to": "e-mail", "width": 19.0}, {"from": "cliente", "title": "contextual proximity", "to": "email", "width": 5.5}, {"from": "cliente", "title": "contextual proximity", "to": "encerrar conta", "width": 26.75}, {"from": "cliente", "title": "contextual proximity", "to": "estorno", "width": 10.25}, {"from": "cliente", "title": "contextual proximity", "to": "fatura", "width": 6.75}, {"from": "cliente", "title": "contextual proximity", "to": "fazer pix", "width": 4.5}, {"from": "cliente", "title": "contextual proximity", "to": "informa\u00e7\u00e3o", "width": 8.0}, {"from": "cliente", "title": "contextual proximity", "to": "informa\u00e7\u00f5es", "width": 10.5}, {"from": "cliente", "title": "contextual proximity", "to": "informe de rendimentos", "width": 4.5}, {"from": "cliente", "title": "contextual proximity", "to": "investimento", "width": 17.5}, {"from": "cliente", "title": "contextual proximity", "to": "investimentos", "width": 6.0}, {"from": "cliente", "title": "contextual proximity", "to": "investir", "width": 12.25}, {"from": "cliente", "title": "contextual proximity", "to": "limite", "width": 4.25}, {"from": "cliente", "title": "contextual proximity", "to": "mensagem", "width": 4.25}, {"from": "cliente", "title": "contextual proximity", "to": "mensagem de erro", "width": 5.5}, {"from": "cliente", "title": "contextual proximity", "to": "notifica\u00e7\u00e3o", "width": 8.5}, {"from": "cliente", "title": "contextual proximity", "to": "n\u00e3o consegue acessar conta", "width": 6.25}, {"from": "cliente", "title": "contextual proximity", "to": "n\u00e3o consegue fazer pix", "width": 4.5}, {"from": "cliente", "title": "contextual proximity", "to": "pagamento", "width": 8.0}, {"from": "cliente", "title": "contextual proximity", "to": "pagar fatura", "width": 7.0}, {"from": "cliente", "title": "contextual proximity", "to": "pesquisa", "width": 7.5}, {"from": "cliente", "title": "contextual proximity", "to": "pix", "width": 20.25}, {"from": "cliente", "title": "contextual proximity", "to": "portabilidade", "width": 3.75}, {"from": "cliente", "title": "contextual proximity", "to": "print", "width": 15.5}, {"from": "cliente", "title": "contextual proximity", "to": "prints", "width": 3.75}, {"from": "cliente", "title": "contextual proximity", "to": "problema", "width": 4.0}, {"from": "cliente", "title": "contextual proximity", "to": "resgatar investimento", "width": 3.75}, {"from": "cliente", "title": "contextual proximity", "to": "resgate", "width": 7.5}, {"from": "cliente", "title": "contextual proximity", "to": "retorno", "width": 5.75}, {"from": "cliente", "title": "contextual proximity", "to": "retorno por e-mail", "width": 4.0}, {"from": "cliente", "title": "contextual proximity", "to": "saldo", "width": 4.0}, {"from": "cliente", "title": "contextual proximity", "to": "saldo bloqueado", "width": 3.75}, {"from": "cliente", "title": "contextual proximity", "to": "senha", "width": 5.0}, {"from": "cliente", "title": "contextual proximity", "to": "solu\u00e7\u00e3o", "width": 13.75}, {"from": "cliente", "title": "entra em contato,vai entrar em contato,entrar em contato,contextual proximity", "to": "time interno", "width": 3.75}, {"from": "cliente", "title": "contextual proximity", "to": "transferir", "width": 5.75}, {"from": "cliente", "title": "contextual proximity", "to": "transferir dinheiro", "width": 8.75}, {"from": "cliente", "title": "contextual proximity", "to": "transfer\u00eancia", "width": 28.75}, {"from": "cliente", "title": "contextual proximity", "to": "transfer\u00eancia de cust\u00f3dia", "width": 4.75}, {"from": "cobran\u00e7a", "title": "contextual proximity", "to": "estornada", "width": 0.75}, {"from": "cobran\u00e7a", "title": "ter,n\u00e3o ter,consta,contextual proximity", "to": "fatura", "width": 3.75}, {"from": "cobran\u00e7a", "title": "contextual proximity", "to": "indevida", "width": 1.25}, {"from": "cobran\u00e7a", "title": "contextual proximity", "to": "iof", "width": 0.75}, {"from": "compra", "title": "contextual proximity", "to": "estabelecimento", "width": 1.5}, {"from": "compra", "title": "contextual proximity", "to": "golpe", "width": 2.25}, {"from": "compra", "title": "contextual proximity", "to": "internacional", "width": 1.0}, {"from": "compra", "title": "contextual proximity", "to": "seguran\u00e7a", "width": 0.75}, {"from": "comprovante", "title": "contextual proximity", "to": "e-mail", "width": 0.75}, {"from": "conjunta", "title": "\u00e9,\u00e9,\u00e9,\u00e9,ser,\u00e9,contextual proximity", "to": "conta", "width": 7.5}, {"from": "consequ\u00eancia", "title": "contextual proximity", "to": "fatura n\u00e3o paga", "width": 1.75}, {"from": "conta", "title": "ser", "to": "conjunta investimentos", "width": 1.0}, {"from": "conta", "title": "contextual proximity", "to": "conta investimento", "width": 1.0}, {"from": "conta", "title": "contextual proximity", "to": "conta sal\u00e1rio", "width": 0.75}, {"from": "conta", "title": "contextual proximity", "to": "corrente", "width": 2.0}, {"from": "conta", "title": "n\u00e3o voltou,n\u00e3o entrar,n\u00e3o aparece,contextual proximity", "to": "dinheiro", "width": 3.75}, {"from": "conta", "title": "contextual proximity", "to": "documenta\u00e7\u00e3o pendente", "width": 1.5}, {"from": "conta", "title": "contextual proximity", "to": "encerrada", "width": 11.0}, {"from": "conta", "title": "contextual proximity", "to": "encerramento", "width": 0.75}, {"from": "conta", "title": "contextual proximity", "to": "encerrar", "width": 0.75}, {"from": "conta", "title": "contextual proximity", "to": "eqi", "width": 1.25}, {"from": "conta", "title": "contextual proximity", "to": "filho", "width": 0.75}, {"from": "conta", "title": "contextual proximity", "to": "inatividade", "width": 0.75}, {"from": "conta", "title": "contextual proximity", "to": "investimento", "width": 4.25}, {"from": "conta", "title": "contextual proximity", "to": "investimentos", "width": 2.0}, {"from": "conta", "title": "contextual proximity", "to": "negativa", "width": 3.0}, {"from": "conta", "title": "contextual proximity", "to": "pend\u00eancia", "width": 1.5}, {"from": "conta", "title": "contextual proximity", "to": "pend\u00eancias", "width": 1.0}, {"from": "conta", "title": "ainda n\u00e3o caiu,ainda n\u00e3o consta,ainda n\u00e3o caiu,n\u00e3o caiu,contextual proximity", "to": "resgate", "width": 5.0}, {"from": "conta", "title": "contextual proximity", "to": "saldo", "width": 0.75}, {"from": "conta", "title": "contextual proximity", "to": "saldo negativo", "width": 0.75}, {"from": "conta", "title": "contextual proximity", "to": "sal\u00e1rio", "width": 0.75}, {"from": "conta", "title": "contextual proximity", "to": "ser encerrada", "width": 1.0}, {"from": "conta", "title": "n\u00e3o caiu,ser devolvida,foi feita,n\u00e3o entrou,saiu,n\u00e3o voltou,n\u00e3o consta,contextual proximity", "to": "transfer\u00eancia", "width": 8.75}, {"from": "conta", "title": "contextual proximity", "to": "vitreo", "width": 1.0}, {"from": "conta", "title": "contextual proximity", "to": "zerada", "width": 0.75}, {"from": "conta banking", "title": "\u00e9,\u00e9,ser,contextual proximity", "to": "conta errada", "width": 3.75}, {"from": "conta banking", "title": "possui,foi vinculada,n\u00e3o est\u00e1,contextual proximity", "to": "conta investimento", "width": 3.75}, {"from": "conta banking", "title": "enviada,destino,foi feita,contextual proximity", "to": "transfer\u00eancia", "width": 3.75}, {"from": "conta btg", "title": "foi,n\u00e3o entrou,foi enviado,foi,tem origem,contextual proximity", "to": "pix", "width": 6.25}, {"from": "conta btg", "title": "ter destino,saiu,enviada,foi feita,ocorre,foi,ter como destino,tem origem,contextual proximity", "to": "transfer\u00eancia", "width": 10.0}, {"from": "conta conjunta", "title": "contextual proximity", "to": "investimentos", "width": 0.5}, {"from": "conta corrente", "title": "vincular,possui v\u00ednculo,estar vinculada,ser vinculada,vincular,ter v\u00ednculo,foi vinculada,contextual proximity", "to": "conta investimento", "width": 8.75}, {"from": "conta corrente", "title": "contextual proximity", "to": "encerrada", "width": 1.0}, {"from": "conta corrente", "title": "ser produto de,ter destino,estar dispon\u00edvel,contextual proximity", "to": "pix", "width": 3.75}, {"from": "conta corrente", "title": "contextual proximity", "to": "saques gratuitos", "width": 0.75}, {"from": "conta corrente", "title": "\u00e9 para,ter como destino,para,foi,tem como destino,contextual proximity", "to": "transfer\u00eancia", "width": 6.25}, {"from": "conta cpf", "title": "foi enviado,foi creditado,n\u00e3o foi creditado,contextual proximity", "to": "pix", "width": 3.75}, {"from": "conta do cliente", "title": "\u00e9 para,ter destino,ter origem,contextual proximity", "to": "transfer\u00eancia", "width": 3.75}, {"from": "conta encerrada", "title": "contextual proximity", "to": "ser reativada", "width": 0.75}, {"from": "conta errada", "title": "foi,foi para,estar,contextual proximity", "to": "transfer\u00eancia", "width": 3.75}, {"from": "conta investimento", "title": "foi para,estar em,esta,cai,contextual proximity", "to": "dinheiro", "width": 5.0}, {"from": "conta investimento", "title": "n\u00e3o pode ser feito,destino,foi,foi,ter origem,\u00e9 de,contextual proximity", "to": "pix", "width": 7.5}, {"from": "conta investimento", "title": "fica,n\u00e3o caiu,cai,contextual proximity", "to": "resgate", "width": 3.75}, {"from": "conta investimento", "title": "estar,foi,precisa estar,precisa estar,est\u00e1,contextual proximity", "to": "saldo", "width": 6.25}, {"from": "conta investimento", "title": "\u00e9 de,ter origem,ter origem,foi,tem como destino,destino,contextual proximity", "to": "transfer\u00eancia", "width": 7.5}, {"from": "conta investimento", "title": "est\u00e1,est\u00e1,esta,contextual proximity", "to": "valor", "width": 3.75}, {"from": "conta investimento", "title": "contextual proximity", "to": "vinculada", "width": 1.25}, {"from": "contato", "title": "contextual proximity", "to": "e-mail", "width": 1.75}, {"from": "contato", "title": "contextual proximity", "to": "telefone", "width": 1.0}, {"from": "continuar atendimento", "title": "necess\u00e1rio,necess\u00e1rio,necess\u00e1rio,necess\u00e1rio,necess\u00e1rio,necess\u00e1rio,para,necess\u00e1rio,contextual proximity", "to": "retorno", "width": 10.0}, {"from": "contrata\u00e7\u00e3o", "title": "n\u00e3o precisa,n\u00e3o precisa,n\u00e3o precisa,contextual proximity", "to": "seguro viagem", "width": 3.75}, {"from": "cpf", "title": "\u00e9,ser,ser,contextual proximity", "to": "senha", "width": 3.75}, {"from": "decis\u00e3o comercial", "title": "ser,ser,ser,ser,contextual proximity", "to": "encerramento", "width": 5.0}, {"from": "decis\u00e3o de neg\u00f3cios", "title": "ser,ser,ser,contextual proximity", "to": "encerramento", "width": 3.75}, {"from": "desbloqueio", "title": "contextual proximity", "to": "imediatamente", "width": 3.0}, {"from": "desbloqueio mais r\u00e1pido", "title": "possui,possuir,possui,possui,possui,ter,causar,ter,possui,causar,ter,possui,ter,possui,ter,ter,causar,causar,possui,possui,possui,causar,possui,possui,possui,possui,possui,possui,causar,possui,possui,possui,ter,possui,possuir,possui,possui,possui,possui,possui,ter,possui,ter,possuir,possui,ter,possuir,causar,possui,causar,ter,ter,possui,possui,causar,possuir,possui,possuir,possui,possui,possui,possuir,possui,causa,possui,possui,possui,causar,causar,possuir,possui,possuir,possui,possui,possui,possui,ter,possui,contextual proximity", "to": "d\u00e9bito em conta", "width": 97.5}, {"from": "desbloqueio r\u00e1pido", "title": "ter,causa,causar,causar,causa,causa,causa,causa,causa,causa,causa,contextual proximity", "to": "d\u00e9bito em conta", "width": 13.75}, {"from": "dispon\u00edvel", "title": "estar,estar,estar,contextual proximity", "to": "informe de rendimentos", "width": 3.75}, {"from": "duplicado", "title": "pode ser,aparece,foi,ser,contextual proximity", "to": "pagamento", "width": 5.0}, {"from": "d\u00e9bito autom\u00e1tico", "title": "definida,consta,n\u00e3o foi paga,estar definida,estava,esta,contextual proximity", "to": "fatura", "width": 7.5}, {"from": "d\u00e9bito autom\u00e1tico", "title": "foi por,ser,ser,ser,contextual proximity", "to": "pagamento", "width": 5.0}, {"from": "d\u00e9bito em conta", "title": "foi efetuado,ser efetuado,foi,foi,foi,ser efetuado,ser efetuado,ser efetuado,foi,ser efetuado,ocorrer,ser efetuado,foi,ser efetuado,foi,ser efetuado,ser efetuado,ser efetuado,ser efetuado,foi,foi,ser,foi,ser efetuado,foi,foi,foi feito,foi,foi,foi,foi,ser efetuado,foi,foi,foi,ser efetuado,foi,ser,foi,foi,foi,foi,ser efetuado,ser efetuado,possui,ser efetuado,foi,ser efetuado,ser,possui,ser efetuado,ser,ser efetuado,foi,foi feito,ser efetuado,ser efetuado,ser efetuado,foi,foi,ser efetuado,ser,possui,foi feito,ser,foi feito,foi,foi,foi,ser,foi feito,foi,foi feito,foi efetuado,foi feito,foi,foi,foi,ser efetuado,ser efetuado,ser,foi,ser,foi,foi feito,possui,foi,foi,ser efetuado,foi,contextual proximity", "to": "pagamento", "width": 112.5}, {"from": "e-mail", "title": "foram enviadas,enviadas,est\u00e3o,ser\u00e3o enviadas,enviadas,v\u00e3o,contextual proximity", "to": "informa\u00e7\u00f5es", "width": 7.5}, {"from": "e-mail", "title": "\u00e9,\u00e9 enviada,\u00e9 por,contextual proximity", "to": "notifica\u00e7\u00e3o", "width": 3.75}, {"from": "e-mail", "title": "ser\u00e1 enviada,ser\u00e1 enviada,enviada,ser\u00e1 enviada,enviada,ser\u00e1 enviada,enviada,contextual proximity", "to": "pesquisa", "width": 8.75}, {"from": "e-mail", "title": "enviada,ser enviada,enviada por,ser enviada,ser enviada,ser\u00e1 dada,ser\u00e1 enviada,vai ser enviada,contextual proximity", "to": "resposta", "width": 10.0}, {"from": "e-mail", "title": "ser\u00e1 por,ser por,ser enviado,\u00e9 enviado,ser,envia,ser recebido,ser,ser dado,ser\u00e1,contextual proximity", "to": "retorno", "width": 12.5}, {"from": "efetuado", "title": "foi,foi,foi,foi,foi,foi,foi,foi,foi,foi,foi,foi,foi,contextual proximity", "to": "pagamento", "width": 16.25}, {"from": "em ajustes", "title": "estar,est\u00e1,esta,contextual proximity", "to": "sistema", "width": 3.75}, {"from": "email", "title": "enviada,enviada,ser enviada,contextual proximity", "to": "fatura", "width": 3.75}, {"from": "encargos", "title": "n\u00e3o ser realizado,gerar,gera,contextual proximity", "to": "pagamento", "width": 3.75}, {"from": "encerramento", "title": "contextual proximity", "to": "regras internas", "width": 1.25}, {"from": "enviado por e-mail", "title": "ser,ser\u00e1,sera,contextual proximity", "to": "retorno", "width": 3.75}, {"from": "erro", "title": "est\u00e1 com,est\u00e1 com,ter,contextual proximity", "to": "resgate", "width": 3.75}, {"from": "erro", "title": "contextual proximity", "to": "transa\u00e7\u00e3o n\u00e3o autorizada", "width": 0.75}, {"from": "esquecida", "title": "ser,ser,ser,contextual proximity", "to": "senha", "width": 3.75}, {"from": "estorno", "title": "contextual proximity", "to": "fatura", "width": 1.5}, {"from": "estorno", "title": "contextual proximity", "to": "feito", "width": 1.0}, {"from": "exigibilidade", "title": "suspende,suspende,suspende,contextual proximity", "to": "liminar", "width": 3.75}, {"from": "extrato", "title": "contextual proximity", "to": "formato pdf", "width": 0.75}, {"from": "fatura", "title": "contextual proximity", "to": "fevereiro", "width": 0.75}, {"from": "fatura", "title": "contextual proximity", "to": "n\u00e3o paga", "width": 0.75}, {"from": "fatura", "title": "da,n\u00e3o consta,ser,ser,contextual proximity", "to": "pagamento", "width": 5.0}, {"from": "fatura", "title": "contextual proximity", "to": "vencimento", "width": 1.5}, {"from": "fechado", "title": "estar,estar,estar,estar,estar,contextual proximity", "to": "mercado", "width": 6.25}, {"from": "funcionalidade de seguran\u00e7a", "title": "ser,ser,ser,contextual proximity", "to": "token", "width": 3.75}, {"from": "hoje", "title": "\u00e9 feito,estava agendado,foi,ser,contextual proximity", "to": "pagamento", "width": 5.0}, {"from": "hoje", "title": "valor entra,deveria ter sido efetivado,n\u00e3o foi efetivado,foi creditado,ser feito,tem data,ser\u00e1 liquidado,contextual proximity", "to": "resgate", "width": 8.75}, {"from": "hoje", "title": "programada,prazo,enviada,foi feita,contextual proximity", "to": "transfer\u00eancia", "width": 5.0}, {"from": "indispon\u00edvel", "title": "est\u00e1,est\u00e1,est\u00e1,contextual proximity", "to": "sistema", "width": 3.75}, {"from": "instabilidade", "title": "possui,ter problema,passar,contextual proximity", "to": "sistema", "width": 3.75}, {"from": "investimento", "title": "\u00e9 obtida por,estar,ter condi\u00e7\u00e3o,ser por,depende de,ter condi\u00e7\u00e3o,ser,contextual proximity", "to": "isen\u00e7\u00e3o", "width": 8.75}, {"from": "investimento", "title": "contextual proximity", "to": "liquidez di\u00e1ria", "width": 1.0}, {"from": "investimento", "title": "contextual proximity", "to": "renda fixa", "width": 0.75}, {"from": "investimento", "title": "contextual proximity", "to": "tesouro direto", "width": 1.0}, {"from": "limite", "title": "excedeu,possui,possui,contextual proximity", "to": "saque", "width": 3.75}, {"from": "mastercard", "title": "oferecido,disponibilizado,oferecido,oferecer,contextual proximity", "to": "seguro viagem", "width": 5.0}, {"from": "mensagem de erro", "title": "mostra,mostra,mostra,contextual proximity", "to": "sistema", "width": 3.75}, {"from": "nubank", "title": "foi feita,ser enviada,ter origem,contextual proximity", "to": "transfer\u00eancia", "width": 3.75}, {"from": "n\u00e3o determinado", "title": "ser,ser,ser,contextual proximity", "to": "tempo de espera", "width": 3.75}, {"from": "pagamento", "title": "contextual proximity", "to": "pix", "width": 1.75}, {"from": "pagamento", "title": "contextual proximity", "to": "realizado", "width": 7.5}, {"from": "pagamento", "title": "obtida por,obtida por,obtida por,obtida por,obtida por,obtida por,obtida por,obtida por,obtida por,obtida por,contextual proximity", "to": "solu\u00e7\u00e3o", "width": 16.0}, {"from": "pagamento", "title": "contextual proximity", "to": "total", "width": 0.75}, {"from": "pesquisa", "title": "contextual proximity", "to": "referente ao atendimento", "width": 0.75}, {"from": "pix", "title": "contextual proximity", "to": "seguran\u00e7a", "width": 1.0}, {"from": "pix", "title": "\u00e9,seria,ser,ser,n\u00e3o funciona,\u00e9 imediata,ser,\u00e9,ser,foi feita,ser,foi feita,ser enviada,foi,contextual proximity", "to": "transfer\u00eancia", "width": 17.5}, {"from": "plano de neg\u00f3cios", "title": "\u00e9 baseada,baseada em,baseada em,baseia-se,contextual proximity", "to": "recusa", "width": 5.0}, {"from": "plataforma", "title": "contextual proximity", "to": "r$100,00", "width": 1.0}, {"from": "por e-mail", "title": "ser\u00e1,ser\u00e1,ser dado,ser\u00e1,ser\u00e1 feito,ser\u00e1,ser\u00e1,ser\u00e1,contextual proximity", "to": "retorno", "width": 10.0}, {"from": "processamento", "title": "est\u00e1,esta,est\u00e1,estar,contextual proximity", "to": "resgate", "width": 5.0}, {"from": "processando", "title": "esta,estar,est\u00e1,contextual proximity", "to": "resgate", "width": 3.75}, {"from": "pr\u00f3ximo dia \u00fatil", "title": "s\u00f3,ter data,ocorre,liberado,demora,contextual proximity", "to": "resgate", "width": 6.25}, {"from": "realizada", "title": "n\u00e3o foi,n\u00e3o foi,n\u00e3o,contextual proximity", "to": "transfer\u00eancia", "width": 3.75}, {"from": "realizado", "title": "foi,ser,n\u00e3o foi,contextual proximity", "to": "saque", "width": 3.75}, {"from": "recusa", "title": "contextual proximity", "to": "regras internas", "width": 1.0}, {"from": "resgate", "title": "contextual proximity", "to": "sim", "width": 1.25}, {"from": "resgate", "title": "contextual proximity", "to": "solicitado", "width": 1.75}, {"from": "resgate", "title": "contextual proximity", "to": "tesouro selic", "width": 0.75}, {"from": "retorno", "title": "contextual proximity", "to": "via e-mail", "width": 1.0}, {"from": "ted", "title": "ser,foi,seria,vai ser,ser,contextual proximity", "to": "transfer\u00eancia", "width": 6.25}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true,
+        "filter": [
+            "physics"
+        ]
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "forceAtlas2Based": {
+            "avoidOverlap": 0,
+            "centralGravity": 0.015,
+            "damping": 0.4,
+            "gravitationalConstant": -31,
+            "springConstant": 0.08,
+            "springLength": 100
+        },
+        "solver": "forceAtlas2Based",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
